@@ -1,0 +1,6 @@
+target/
+.git/
+.lein-env
+.env
+*.md
+doc/
