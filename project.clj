@@ -18,6 +18,7 @@
   :main ^:skip-aot revenu-api.core
   :target-path "target/%s"
   :plugins [[lein-environ "1.2.0"]]
-  :profiles {:dev     {:env {:app-env "development"}}
+  :profiles {:dev     {:env          {:app-env "development"}
+                      :source-paths ["dev"]}
              :uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})

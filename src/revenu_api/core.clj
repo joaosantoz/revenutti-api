@@ -7,7 +7,7 @@
   {:status 200
    :body "Hello, World!"})
 
-(def routes #{["/test" :get `greet]})
+(def routes #{["/greet" :get `greet]})
 
 (def service
   {::http/routes   routes

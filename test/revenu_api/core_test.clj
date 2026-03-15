@@ -1,4 +1,4 @@
-(ns revenu.core-test
+(ns revenu-api.core-test
   (:require [clojure.test :refer :all]
             [revenu.core :refer :all]))
 
