@@ -10,6 +10,8 @@
                  [com.github.seancorfield/next.jdbc "1.3.909"]
                  [org.postgresql/postgresql         "42.7.3"]
                  [com.zaxxer/HikariCP               "5.1.0"]
+                 ;; Component
+                 [com.stuartsierra/component        "1.1.0"]
                  ;; Migrations
                  [ragtime "0.8.0"]
                  ;; Validation
@@ -25,12 +27,12 @@
   :main ^:skip-aot revenu-api.core
   :target-path "target/%s"
   :plugins [[lein-environ "1.2.0"]]
-  :aliases {"migrate"  ["run" "-m" "revenu-api.migrate/migrate"]
-            "rollback" ["run" "-m" "revenu-api.migrate/rollback"]}
+  :aliases {"migrate"  ["run" "-m" "revenu-api.db.migration/migrate"]
+            "rollback" ["run" "-m" "revenu-api.db.migration/rollback"]}
   :profiles {:dev        {:source-paths ["dev"]
                          :dependencies [[org.clojure/tools.namespace "1.4.4"]]}
              :uberjar   {:aot :all
                          :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
-             :repl-start {:injections   [(require '[revenu-api.server :as s])
-                                         (s/start)]
+             :repl-start {:injections   [(require '[revenu-api.components :as components])
+                                         (components/bootstrap!)]
                           :repl-options {:init-ns user}}})

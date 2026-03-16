@@ -1,6 +1,6 @@
 (ns revenu-api.core
-  (:require [revenu-api.server :as server])
+  (:require [revenu-api.components :as components])
   (:gen-class))
 
 (defn -main [& _args]
-  (server/start))
+  (components/bootstrap!))

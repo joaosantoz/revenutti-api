@@ -1,4 +1,4 @@
-(ns revenu-api.migrate
+(ns revenu-api.db.migration
   (:require [ragtime.jdbc :as ragtime-jdbc]
             [ragtime.repl :as ragtime]
             [revenu-api.config :as config]))

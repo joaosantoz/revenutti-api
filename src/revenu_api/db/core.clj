@@ -1,35 +1,36 @@
 (ns revenu-api.db.core
-  (:require [next.jdbc :as jdbc]
+  (:require [com.stuartsierra.component :as component]
+            [next.jdbc :as jdbc]
             [next.jdbc.connection :as jdbc-conn]
             [revenu-api.config :as config])
   (:import (com.zaxxer.hikari HikariDataSource)))
 
-(defonce ^:private datasource (atom nil))
+(defrecord Database [connection]
+  component/Lifecycle
 
-(def ^:dynamic *conn* nil)
+  (start [component]
+    (let [conn (jdbc-conn/->pool HikariDataSource
+                               {:jdbcUrl  config/db-url
+                                :username config/db-user
+                                :password config/db-password})]
+      (println "Starting database")
+      (assoc component :connection conn)))
 
-(defn- conn []
-  (or *conn* @datasource))
+  (stop [component]
+    (when connection
+      (println "Stopping database")
+      (.close ^HikariDataSource connection))
+    (assoc component :connection nil)))
 
-(defn start []
-  (reset! datasource
-          (jdbc-conn/->pool HikariDataSource
-                            {:jdbcUrl  config/db-url
-                             :username config/db-user
-                             :password config/db-password})))
+(defn new-database []
+  (map->Database {}))
 
-(defn stop []
-  (when @datasource
-    (.close ^HikariDataSource @datasource)
-    (reset! datasource nil)))
+(defn query [database sql & params]
+  (jdbc/execute! (:connection database) (into [sql] params)))
 
-(defn query [sql & params]
-  (jdbc/execute! (conn) (into [sql] params)))
+(defn query-one [database sql & params]
+  (jdbc/execute-one! (:connection database) (into [sql] params)))
 
-(defn query-one [sql & params]
-  (jdbc/execute-one! (conn) (into [sql] params)))
-
-(defmacro with-transaction [& body]
-  `(jdbc/with-transaction [tx# @datasource]
-     (binding [*conn* tx#]
-       ~@body)))
+(defmacro with-transaction [database & body]
+  `(jdbc/with-transaction [tx# (:connection ~database)]
+     ~@body))

@@ -1,28 +1,34 @@
 (ns revenu-api.server
-  (:require [io.pedestal.http :as http]
+  (:require [com.stuartsierra.component :as component]
+            [io.pedestal.http :as http]
+            [io.pedestal.http.body-params :as body-params]
             [revenu-api.config :as config]
-            [revenu-api.db.core :as db]))
+            [revenu-api.interceptors :as interceptors]
+            [revenu-api.infra.http-server :as http-server]))
 
-(defn- service-config []
-  {::http/routes #{}
-   ::http/type   :jetty
-   ::http/port   config/port
-   ::http/join?  false})
+(defn- service-config [db]
+  {::http/routes  http-server/routes
+   ::http/type    :jetty
+   ::http/port    config/port
+   ::http/join?   false})
 
-(defonce ^:private server (atom nil))
+(defrecord Server [db server]
+  component/Lifecycle
+  (start [component]
+    (let [server (-> (service-config db)
+                     http/default-interceptors
+                     (update ::http/interceptors into [(body-params/body-params)
+                                                       http/json-body
+                                                       (interceptors/db-interceptor db)])
+                     http/create-server
+                     http/start)]
+      (println (str "Server running on port " config/port))
+      (assoc component :server server)))
 
-(defn start []
-  (db/start)
-  (try
-    (db/query-one "SELECT 1")
-    (println "DB connection OK")
-    (catch Exception e
-      (println "DB connection FAILED:" (.getMessage e))))
-  (reset! server (-> (service-config) http/create-server http/start))
-  (println (str "Server running on port " config/port)))
+  (stop [component]
+    (when server
+      (http/stop server))
+    (assoc component :server nil)))
 
-(defn stop []
-  (when @server
-    (http/stop @server)
-    (reset! server nil))
-  (db/stop))
+(defn new-server []
+  (map->Server {}))
