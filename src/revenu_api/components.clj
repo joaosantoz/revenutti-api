@@ -1,5 +1,6 @@
 (ns revenu-api.components
   (:require [com.stuartsierra.component :as component]
+            [io.pedestal.http :as http]
             [revenu-api.db.core :as db]
             [revenu-api.server :as server]))
 
