@@ -3,7 +3,7 @@
             [next.jdbc :as jdbc]
             [next.jdbc.connection :as jdbc-conn]
             [revenu-api.config :as config])
-  (:import (com.zaxxer.hikari HikariDataSource)))
+  (:import [com.zaxxer.hikari HikariDataSource]))
 
 (defrecord Database [connection]
   component/Lifecycle
@@ -22,15 +22,15 @@
       (.close ^HikariDataSource connection))
     (assoc component :connection nil)))
 
-(defn new-database []
+(defn new-database
+  []
   (map->Database {}))
 
-(defn query [database sql]
+(defn query
+  [database sql]
   (jdbc/execute! (:connection database) sql))
 
-(defn query-one [database sql]
+(defn query-one
+  [database sql]
   (jdbc/execute-one! (:connection database) sql))
 
-(defmacro with-transaction [database & body]
-  `(jdbc/with-transaction [tx# (:connection ~database)]
-     ~@body))
