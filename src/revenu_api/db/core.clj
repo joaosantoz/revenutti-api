@@ -25,11 +25,11 @@
 (defn new-database []
   (map->Database {}))
 
-(defn query [database sql & params]
-  (jdbc/execute! (:connection database) (into [sql] params)))
+(defn query [database sql]
+  (jdbc/execute! (:connection database) sql))
 
-(defn query-one [database sql & params]
-  (jdbc/execute-one! (:connection database) (into [sql] params)))
+(defn query-one [database sql]
+  (jdbc/execute-one! (:connection database) sql))
 
 (defmacro with-transaction [database & body]
   `(jdbc/with-transaction [tx# (:connection ~database)]

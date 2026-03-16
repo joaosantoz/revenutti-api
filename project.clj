@@ -7,9 +7,10 @@
                  [io.pedestal/pedestal.service "0.6.4"]
                  [io.pedestal/pedestal.jetty   "0.6.4"]
                  ;; Database
-                 [com.github.seancorfield/next.jdbc "1.3.909"]
-                 [org.postgresql/postgresql         "42.7.3"]
-                 [com.zaxxer/HikariCP               "5.1.0"]
+                 [com.github.seancorfield/next.jdbc    "1.3.909"]
+                 [com.github.seancorfield/honeysql      "2.6.1203"]
+                 [org.postgresql/postgresql             "42.7.3"]
+                 [com.zaxxer/HikariCP                   "5.1.0"]
                  ;; Component
                  [com.stuartsierra/component        "1.1.0"]
                  ;; Migrations
