@@ -1,5 +1,11 @@
+#_:clj-kondo/ignore
 (ns user
-  (:require [revenu-api.core :as core]))
+  (:require [clojure.tools.namespace.repl :refer [refresh refresh-all]]
+            [revenu-api.server :as server]
+            [revenu-api.migrate :as migrate]))
 
-(core/start)
-(println "Server running on port 8080")
+(defn start  [] (server/start))
+(defn stop   [] (server/stop))
+(defn reset  [] (stop) (refresh :after 'user/start))
+(defn migrate  [] (migrate/migrate))
+(defn rollback [] (migrate/rollback))

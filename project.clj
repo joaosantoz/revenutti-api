@@ -6,6 +6,12 @@
                  ;; HTTP
                  [io.pedestal/pedestal.service "0.6.4"]
                  [io.pedestal/pedestal.jetty   "0.6.4"]
+                 ;; Database
+                 [com.github.seancorfield/next.jdbc "1.3.909"]
+                 [org.postgresql/postgresql         "42.7.3"]
+                 [com.zaxxer/HikariCP               "5.1.0"]
+                 ;; Migrations
+                 [ragtime "0.8.0"]
                  ;; Validation
                  [prismatic/schema "1.4.1"]
                  ;; JSON
@@ -14,11 +20,17 @@
                  [environ "1.2.0"]
                  ;; Logging
                  [ch.qos.logback/logback-classic "1.4.12"]
+                 [org.slf4j/slf4j-api            "2.0.9"]
                  [org.slf4j/jul-to-slf4j         "2.0.9"]]
   :main ^:skip-aot revenu-api.core
   :target-path "target/%s"
   :plugins [[lein-environ "1.2.0"]]
-  :profiles {:dev     {:env          {:app-env "development"}
-                      :source-paths ["dev"]}
-             :uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+  :aliases {"migrate"  ["run" "-m" "revenu-api.migrate/migrate"]
+            "rollback" ["run" "-m" "revenu-api.migrate/rollback"]}
+  :profiles {:dev        {:source-paths ["dev"]
+                         :dependencies [[org.clojure/tools.namespace "1.4.4"]]}
+             :uberjar   {:aot :all
+                         :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
+             :repl-start {:injections   [(require '[revenu-api.server :as s])
+                                         (s/start)]
+                          :repl-options {:init-ns user}}})

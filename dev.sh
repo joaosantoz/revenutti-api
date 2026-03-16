@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+#trap 'echo "Stopping Postgres..."; docker compose -f docker-compose.dev.yml down' EXIT
+
 echo "Starting Postgres..."
 docker compose -f docker-compose.dev.yml up -d
 
@@ -10,4 +12,4 @@ until docker compose -f docker-compose.dev.yml exec db pg_isready -U revenu -d r
 done
 
 echo "Starting REPL..."
-lein repl
+lein with-profile +repl-start repl
