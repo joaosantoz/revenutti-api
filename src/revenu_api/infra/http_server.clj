@@ -3,6 +3,8 @@
             [revenu-api.adapters.ingredient :as adapters.ingredient]
             [revenu-api.controllers.auth :as controllers.auth]
             [revenu-api.controllers.ingredient :as controllers.ingredient]
+            [revenu-api.controllers.price-history :as controllers.price-history]
+            [revenu-api.adapters.price-history :as adapters.price-history]
             [revenu-api.interceptors :as interceptors]))
 
 (defn healthcheck
@@ -92,6 +94,40 @@
               :detail "Ingredient not found"
               :status 404}}))
 
+(defn add-price!
+  [{db          :db
+    user-id     :user-id
+    price       :json-params
+   {:keys [id]} :path-params}]
+  (try
+    (let [result (-> price
+                     (adapters.price-history/wire->internal)
+                     (->> (controllers.price-history/add-price! db user-id id))
+                     (adapters.price-history/internal->wire))]
+      {:status 201 :body result})
+    (catch Exception e
+      {:status (:status (ex-data e) 500)
+       :body   {:title  "Error"
+                :status (:status (ex-data e) 500)
+                :detail (ex-message e)}})))
+
+(defn get-prices!
+  [{db          :db
+    user-id     :user-id
+   {:keys [id]} :path-params}]
+  (try
+    {:status 200
+     :body   (->> (controllers.price-history/get-prices! db user-id id)
+                  (mapv adapters.price-history/internal->wire))}
+    (catch Exception e
+      {:status (:status (ex-data e) 500)
+       :body   {:title  "Error"
+                :status (:status (ex-data e) 500)
+                :detail (ex-message e)}})))
+
+(defn- protected [handler]
+  [interceptors/jwt-interceptor handler])
+
 (def api-routes
   #{["/healthcheck"
      :get healthcheck
@@ -106,24 +142,32 @@
      :route-name :auth-refresh]
 
     ["/ingredients"
-     :get [interceptors/jwt-interceptor get-ingredients!]
+     :get (protected get-ingredients!)
      :route-name :get-ingredients]
 
     ["/ingredients"
-     :post [interceptors/jwt-interceptor create-ingredient!]
+     :post (protected create-ingredient!)
      :route-name :create-ingredient]
 
     ["/ingredients/:id"
-     :get [interceptors/jwt-interceptor find-ingredient!]
+     :get (protected find-ingredient!)
      :route-name :find-ingredient]
 
     ["/ingredients/:id"
-     :patch [interceptors/jwt-interceptor update-ingredient!]
+     :patch (protected update-ingredient!)
      :route-name :update-ingredient]
 
     ["/ingredients/:id"
-     :delete [interceptors/jwt-interceptor delete-ingredient!]
-     :route-name :delete-ingredient]})
+     :delete (protected delete-ingredient!)
+     :route-name :delete-ingredient]
+
+    ["/ingredients/:id/prices"
+     :post (protected add-price!)
+     :route-name :add-price]
+
+    ["/ingredients/:id/prices"
+     :get (protected get-prices!)
+     :route-name :get-prices]})
 
 (def routes
   (route/expand-routes api-routes))
