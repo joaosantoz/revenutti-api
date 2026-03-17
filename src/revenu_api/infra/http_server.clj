@@ -7,18 +7,29 @@
             [revenu-api.adapters.price-history :as adapters.price-history]
             [revenu-api.controllers.recipe :as controllers.recipe]
             [revenu-api.adapters.recipe :as adapters.recipe]
-            [revenu-api.interceptors :as interceptors]))
+            [revenu-api.interceptors :as interceptors]
+            [revenu-api.infra.google :as google]
+            [revenu-api.wire.in.ingredient :as in.ingredient]
+            [revenu-api.wire.in.price-history :as in.price-history]
+            [revenu-api.wire.in.recipe :as in.recipe]))
+
+(def ^:private protected [interceptors/jwt-interceptor])
 
 (defn healthcheck
   [_request]
   {:status 200
-   :body {:status :ok}})
+   :body   {:status :ok}})
+
+(defn auth-login
+  [_request]
+  {:status 200
+   :body   {:url (google/login-url)}})
 
 (defn auth-callback!
-  [{db            :db
-   {:keys [code]} :json-params}]
+  [{db             :db
+    {:keys [code]} :json-params}]
   (let [decoded-code (java.net.URLDecoder/decode code "UTF-8")
-        tokens       (controllers.auth/google-callback! db decoded-code)]
+        tokens (controllers.auth/google-callback! db decoded-code)]
     {:status 200
      :body   {:access_token  (:access-token tokens)
               :refresh_token (:refresh-token tokens)
@@ -26,8 +37,8 @@
               :expires_in    900}}))
 
 (defn auth-refresh!
-  [{db                     :db
-   {:keys [refresh-token]} :json-params}]
+  [{db                      :db
+    {:keys [refresh-token]} :json-params}]
   (try
     (let [tokens (controllers.auth/refresh-tokens! db refresh-token)]
       {:status 200
@@ -46,21 +57,21 @@
     user-id    :user-id
     ingredient :json-params}]
   {:status 201
-   :body (->> ingredient
-              (adapters.ingredient/wire->internal)
-              (controllers.ingredient/create-ingredient! db user-id)
-              (adapters.ingredient/internal->wire))})
+   :body   (->> ingredient
+                (adapters.ingredient/wire->internal)
+                (controllers.ingredient/create-ingredient! db user-id)
+                (adapters.ingredient/internal->wire))})
 
 (defn get-ingredients!
   [{db :db user-id :user-id}]
   {:status 200
-   :body (->> (controllers.ingredient/get-ingredients! db user-id)
-              (mapv adapters.ingredient/internal+dates->wire))})
+   :body   (->> (controllers.ingredient/get-ingredients! db user-id)
+                (mapv adapters.ingredient/internal+dates->wire))})
 
 (defn find-ingredient!
-  [{db          :db
-    user-id     :user-id
-   {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
   (if-let [ingredient (controllers.ingredient/find-ingredient! db user-id id)]
     {:status 200
      :body   (adapters.ingredient/internal+dates->wire ingredient)}
@@ -73,7 +84,7 @@
   [{db           :db
     user-id      :user-id
     ingredient   :json-params
-   {:keys [id]}  :path-params}]
+    {:keys [id]} :path-params}]
   (if-let [updated (->> ingredient
                         (adapters.ingredient/update-wire->internal)
                         (controllers.ingredient/update-ingredient! db user-id id))]
@@ -85,9 +96,9 @@
               :status 404}}))
 
 (defn delete-ingredient!
-  [{db          :db
-    user-id     :user-id
-   {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
   (if-let [deleted? (controllers.ingredient/delete-ingredient! db user-id id)]
     {:status 204
      :body   {}}
@@ -97,10 +108,10 @@
               :status 404}}))
 
 (defn add-price!
-  [{db          :db
-    user-id     :user-id
-    price       :json-params
-   {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    price        :json-params
+    {:keys [id]} :path-params}]
   (try
     (let [result (->> price
                       (adapters.price-history/wire->internal)
@@ -114,9 +125,9 @@
                 :detail (ex-message e)}})))
 
 (defn get-prices!
-  [{db          :db
-    user-id     :user-id
-   {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
   (try
     {:status 200
      :body   (->> (controllers.price-history/get-prices! db user-id id)
@@ -127,25 +138,21 @@
                 :status (:status (ex-data e) 500)
                 :detail (ex-message e)}})))
 
-(defn- protected
-  [handler]
-  [interceptors/jwt-interceptor handler])
-
 (defn create-recipe!
   [{db      :db
     recipe  :json-params
     user-id :user-id}]
   {:status 201
-   :body (->> recipe
-              (adapters.recipe/wire->internal)
-              (controllers.recipe/create-recipe! db user-id)
-              (adapters.recipe/internal->wire))})
+   :body   (->> recipe
+                (adapters.recipe/wire->internal)
+                (controllers.recipe/create-recipe! db user-id)
+                (adapters.recipe/internal->wire))})
 
 (defn get-recipes!
   [{db :db user-id :user-id}]
   {:status 200
-   :body (->> (controllers.recipe/get-recipes! db user-id)
-              (mapv adapters.recipe/internal+dates->wire))})
+   :body   (->> (controllers.recipe/get-recipes! db user-id)
+                (mapv adapters.recipe/internal+dates->wire))})
 
 (defn find-recipe!
   [{db :db user-id :user-id {:keys [id]} :path-params}]
@@ -172,6 +179,10 @@
      :get healthcheck
      :route-name :healthcheck]
 
+    ["/auth/login"
+     :get auth-login
+     :route-name :auth-login]
+
     ["/auth/callback"
      :post auth-callback!
      :route-name :auth-callback]
@@ -181,51 +192,67 @@
      :route-name :auth-refresh]
 
     ["/ingredients"
-     :get (protected get-ingredients!)
+     :get (conj protected
+                get-ingredients!)
      :route-name :get-ingredients]
 
     ["/ingredients"
-     :post (protected create-ingredient!)
+     :post (conj protected
+                 (interceptors/coerce in.ingredient/NewIngredient)
+                 create-ingredient!)
      :route-name :create-ingredient]
 
     ["/ingredients/:id"
-     :get (protected find-ingredient!)
+     :get (conj protected find-ingredient!)
      :route-name :find-ingredient]
 
     ["/ingredients/:id"
-     :patch (protected update-ingredient!)
+     :patch (conj protected
+                  (interceptors/coerce in.ingredient/UpdateIngredient)
+                  update-ingredient!)
      :route-name :update-ingredient]
 
     ["/ingredients/:id"
-     :delete (protected delete-ingredient!)
+     :delete (conj protected
+                   delete-ingredient!)
      :route-name :delete-ingredient]
 
     ["/ingredients/:id/prices"
-     :post (protected add-price!)
+     :post (conj protected
+                 (interceptors/coerce in.price-history/NewPriceHistory)
+                 add-price!)
      :route-name :add-price]
 
     ["/ingredients/:id/prices"
-     :get (protected get-prices!)
+     :get (conj protected
+                get-prices!)
      :route-name :get-prices]
 
     ["/recipes"
-     :post (protected create-recipe!)
+     :post (conj protected
+                 (interceptors/coerce in.recipe/NewRecipe)
+                 create-recipe!)
      :route-name :create-recipe]
 
     ["/recipes"
-     :get (protected get-recipes!)
+     :get (conj protected
+                get-recipes!)
      :route-name :get-recipes]
 
     ["/recipes/:id"
-     :get (protected find-recipe!)
+     :get (conj protected
+                find-recipe!)
      :route-name :find-recipe]
 
     ["/recipes/:id"
-     :patch (protected update-recipe!)
+     :patch (conj protected
+                  (interceptors/coerce in.recipe/UpdateRecipe)
+                  update-recipe!)
      :route-name :update-recipe]
 
     ["/recipes/:id"
-     :delete (protected delete-recipe!)
+     :delete (conj protected
+                   delete-recipe!)
      :route-name :delete-recipe]})
 
 (def routes

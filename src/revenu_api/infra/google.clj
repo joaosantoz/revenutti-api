@@ -2,6 +2,13 @@
   (:require [clj-http.client :as http]
             [revenu-api.config :as config]))
 
+(defn login-url []
+  (str "https://accounts.google.com/o/oauth2/v2/auth"
+       "?client_id="     config/google-client-id
+       "&redirect_uri="  config/google-redirect-uri
+       "&response_type=code"
+       "&scope=openid%20email%20profile"))
+
 (defn exchange-code-for-tokens
   [code]
   (-> (http/post "https://oauth2.googleapis.com/token"
