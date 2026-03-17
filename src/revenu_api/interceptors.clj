@@ -1,13 +1,32 @@
 (ns revenu-api.interceptors
   (:require [io.pedestal.interceptor :as interceptor]
-            [revenu-api.logic.auth :as auth])
+            [io.pedestal.interceptor.chain :as chain]
+            [revenu-api.logic.auth :as auth]
+            [schema.core :as s])
   (:import [java.util UUID]))
 
-(defn db-interceptor [db]
+(defn db-interceptor
+  [db]
   (interceptor/interceptor
     {:name  ::db
      :enter (fn [ctx]
               (assoc-in ctx [:request :db] db))}))
+
+(defn coerce
+  [schema]
+  (interceptor/interceptor
+    {:name  ::coerce
+     :enter (fn [ctx]
+              (let [params (get-in ctx [:request :json-params])
+                    errors (s/check schema params)]
+                (if errors
+                  (chain/terminate
+                    (assoc ctx :response {:status 422
+                                          :body   {:title  "Unprocessable Entity"
+                                                   :status 422
+                                                   :detail "Validation failed"
+                                                   :errors errors}}))
+                  ctx)))}))
 
 (def jwt-interceptor
   (interceptor/interceptor
@@ -16,15 +35,17 @@
               (let [token (some-> (get-in ctx [:request :headers "authorization"])
                                   (clojure.string/replace #"(?i)^bearer " ""))]
                 (if-not token
-                  (assoc ctx :response {:status 401
-                                        :body   {:title  "Unauthorized"
-                                                 :status 401
-                                                 :detail "Missing Authorization header"}})
+                  (chain/terminate
+                    (assoc ctx :response {:status 401
+                                          :body   {:title  "Unauthorized"
+                                                   :status 401
+                                                   :detail "Missing Authorization header"}}))
                   (try
                     (let [claims (auth/verify-token token)]
                       (assoc-in ctx [:request :user-id] (UUID/fromString (:sub claims))))
                     (catch Exception _
-                      (assoc ctx :response {:status 401
-                                            :body   {:title  "Unauthorized"
-                                                     :status 401
-                                                     :detail "Invalid or expired token"}}))))))}))
+                      (chain/terminate
+                        (assoc ctx :response {:status 401
+                                              :body   {:title  "Unauthorized"
+                                                       :status 401
+                                                       :detail "Invalid or expired token"}})))))))}))
