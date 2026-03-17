@@ -34,3 +34,8 @@
   [database sql]
   (jdbc/execute-one! (:connection database) sql))
 
+(defmacro with-transaction
+  [database binding & body]
+  `(jdbc/with-transaction [~binding (:connection ~database)]
+     ~@body))
+
