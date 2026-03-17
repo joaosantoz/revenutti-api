@@ -3,25 +3,25 @@
             [revenu-api.db.ingredient :as db]))
 
 (defn create-ingredient!
-  [ingredient database]
-  (-> (db/insert! database ingredient)
+  [ingredient database user-id]
+  (-> (db/insert! database user-id ingredient)
       (adapter/db->internal)))
 
 (defn get-ingredients!
-  [database]
-  (->> (db/get-all! database)
+  [database user-id]
+  (->> (db/get-all! database user-id)
        (mapv adapter/db->internal)))
 
 (defn find-ingredient!
-  [database id]
-  (when-let [row (db/find! database id)]
+  [database user-id id]
+  (when-let [row (db/find! database user-id id)]
     (adapter/db->internal row)))
 
 (defn update-ingredient!
-  [database id ingredient]
-  (when-let [row (db/update! database id ingredient)]
+  [database user-id id ingredient]
+  (when-let [row (db/update! database user-id id ingredient)]
     (adapter/db->internal row)))
 
 (defn delete-ingredient!
-  [database id]
-  (db/deactivate! database id))
+  [database user-id id]
+  (db/deactivate! database user-id id))
