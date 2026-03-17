@@ -5,22 +5,23 @@
 (defn create-recipe!
   [database user-id recipe]
   (-> (db/insert! database user-id recipe)
-      (adapter/db->internal)))
+      (adapter/db->internal)
+      (assoc :ingredients (:ingredients recipe))))
 
 (defn get-recipes!
   [database user-id]
   (->> (db/get-all! database user-id)
-       (mapv adapter/db->internal)))
+       (mapv adapter/recipe+ingredients->internal)))
 
 (defn find-recipe!
   [database user-id id]
   (when-let [row (db/find! database user-id id)]
-    (adapter/db->internal row)))
+    (adapter/recipe+ingredients->internal row)))
 
 (defn update-recipe!
   [database user-id id recipe]
-  (when-let [row (db/update! database user-id id recipe)]
-    (adapter/db->internal row)))
+  (when (db/update! database user-id id recipe)
+    (find-recipe! database user-id id)))
 
 (defn delete-recipe!
   [database user-id id]

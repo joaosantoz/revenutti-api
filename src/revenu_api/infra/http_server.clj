@@ -132,7 +132,9 @@
   [interceptors/jwt-interceptor handler])
 
 (defn create-recipe!
-  [{db :db user-id :user-id recipe :json-params}]
+  [{db      :db
+    recipe  :json-params
+    user-id :user-id}]
   {:status 201
    :body (->> recipe
               (adapters.recipe/wire->internal)
