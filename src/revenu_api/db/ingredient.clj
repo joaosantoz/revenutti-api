@@ -1,8 +1,7 @@
 (ns revenu-api.db.ingredient
   (:require [honey.sql :as sql]
             [revenu-api.db.core :as db])
-  (:import (java.time Instant)
-           (java.util UUID)))
+  (:import (java.util UUID)))
 
 (defn insert!
   [database ingredient]
@@ -40,4 +39,16 @@
                :where  [:and
                         [:= :ingredients.id        uuid]
                         [:= :ingredients.is_active true]]}]
+    (db/query-one database (sql/format query))))
+
+(defn deactivate!
+  [database id]
+  (let [uuid  (UUID/fromString id)
+        query {:update    :ingredients
+               :set       {:is_active  false
+                           :updated_at [:now]}
+               :where     [:and
+                           [:= :ingredients.id        uuid]
+                           [:= :ingredients.is_active true]]
+               :returning [:id]}]
     (db/query-one database (sql/format query))))

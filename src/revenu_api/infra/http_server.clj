@@ -36,12 +36,27 @@
 (defn update-ingredient!
   [{db          :db
     ingredient  :json-params
-   {:keys [id]} :path-params}]
+    {:keys [id]} :path-params}]
   (if-let [updated (->> ingredient
                        (adapters.ingredient/update-wire->internal)
                        (controllers.ingredient/update-ingredient! db id))]
-    {:status 200 :body (adapters.ingredient/internal+dates->wire updated)}
-    {:status 404 :body {:title "Not Found" :detail "Ingredient not found" :status 404}}))
+    {:status 200
+     :body   (adapters.ingredient/internal+dates->wire updated)}
+    {:status 404
+     :body   {:title "Not Found"
+              :detail "Ingredient not found"
+              :status 404}}))
+
+(defn delete-ingredient!
+  [{db          :db
+   {:keys [id]} :path-params}]
+  (if-let [deleted? (controllers.ingredient/delete-ingredient! db id)]
+    {:status 204
+     :body   {}}
+    {:status 404
+     :body   {:title "Not Found"
+              :detail "Ingredient not found"
+              :status 404}}))
 
 (def api-routes
   #{["/healthcheck"
@@ -63,7 +78,11 @@
 
     ["/ingredients/:id"
      :patch update-ingredient!
-     :route-name :update-ingredient]})
+     :route-name :update-ingredient]
+
+    ["/ingredients/:id"
+     :delete delete-ingredient!
+     :route-name :delete-ingredient]})
 
 (def routes
   (route/expand-routes api-routes))

@@ -21,3 +21,7 @@
   [database id ingredient]
   (when-let [row (db/update! database id ingredient)]
     (adapter/db->internal row)))
+
+(defn delete-ingredient!
+  [database id]
+  (db/deactivate! database id))
