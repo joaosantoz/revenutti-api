@@ -19,6 +19,11 @@
                  [prismatic/schema "1.4.1"]
                  ;; JSON
                  [cheshire "5.12.0"]
+                 ;; Auth
+                 [buddy/buddy-sign "3.5.351"]
+                 [buddy/buddy-auth "3.0.323"]
+                 ;; HTTP client
+                 [clj-http "3.12.3"]
                  ;; Config
                  [environ "1.2.0"]
                  ;; Logging
