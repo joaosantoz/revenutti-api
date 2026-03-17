@@ -20,8 +20,14 @@
 
 (defn internal->wire
   [ingredient]
-  (select-keys ingredient [:id :name :unit]))
+  {:id   (:id ingredient)
+   :name (:name ingredient)
+   :unit (:unit ingredient)})
 
 (defn internal+dates->wire
   [ingredient]
-  (select-keys ingredient [:id :name :unit :created-at :updated-at]))
+  {:id         (:id ingredient)
+   :name       (:name ingredient)
+   :unit       (:unit ingredient)
+   :created_at (:created-at ingredient)
+   :updated_at (:updated-at ingredient)})

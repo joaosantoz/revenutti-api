@@ -17,5 +17,5 @@
 (defn internal->wire
   [price-history]
   {:price         (/ (:price-cents price-history) 100.0)
-   :package-qty   (:package-qty price-history)
-   :purchase-date (:purchase-date price-history)})
+   :package_qty   (:package-qty price-history)
+   :purchase_date (:purchase-date price-history)})
