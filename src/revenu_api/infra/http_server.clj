@@ -5,6 +5,8 @@
             [revenu-api.controllers.ingredient :as controllers.ingredient]
             [revenu-api.controllers.price-history :as controllers.price-history]
             [revenu-api.adapters.price-history :as adapters.price-history]
+            [revenu-api.controllers.recipe :as controllers.recipe]
+            [revenu-api.adapters.recipe :as adapters.recipe]
             [revenu-api.interceptors :as interceptors]))
 
 (defn healthcheck
@@ -44,10 +46,10 @@
     user-id    :user-id
     ingredient :json-params}]
   {:status 201
-   :body (-> ingredient
-             (adapters.ingredient/wire->internal)
-             (controllers.ingredient/create-ingredient! db user-id)
-             (adapters.ingredient/internal->wire))})
+   :body (->> ingredient
+              (adapters.ingredient/wire->internal)
+              (controllers.ingredient/create-ingredient! db user-id)
+              (adapters.ingredient/internal->wire))})
 
 (defn get-ingredients!
   [{db :db user-id :user-id}]
@@ -100,10 +102,10 @@
     price       :json-params
    {:keys [id]} :path-params}]
   (try
-    (let [result (-> price
-                     (adapters.price-history/wire->internal)
-                     (->> (controllers.price-history/add-price! db user-id id))
-                     (adapters.price-history/internal->wire))]
+    (let [result (->> price
+                      (adapters.price-history/wire->internal)
+                      (controllers.price-history/add-price! db user-id id)
+                      (adapters.price-history/internal->wire))]
       {:status 201 :body result})
     (catch Exception e
       {:status (:status (ex-data e) 500)
@@ -125,8 +127,43 @@
                 :status (:status (ex-data e) 500)
                 :detail (ex-message e)}})))
 
-(defn- protected [handler]
+(defn- protected
+  [handler]
   [interceptors/jwt-interceptor handler])
+
+(defn create-recipe!
+  [{db :db user-id :user-id recipe :json-params}]
+  {:status 201
+   :body (->> recipe
+              (adapters.recipe/wire->internal)
+              (controllers.recipe/create-recipe! db user-id)
+              (adapters.recipe/internal->wire))})
+
+(defn get-recipes!
+  [{db :db user-id :user-id}]
+  {:status 200
+   :body (->> (controllers.recipe/get-recipes! db user-id)
+              (mapv adapters.recipe/internal+dates->wire))})
+
+(defn find-recipe!
+  [{db :db user-id :user-id {:keys [id]} :path-params}]
+  (if-let [recipe (controllers.recipe/find-recipe! db user-id id)]
+    {:status 200 :body (adapters.recipe/internal+dates->wire recipe)}
+    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
+
+(defn update-recipe!
+  [{db :db user-id :user-id recipe :json-params {:keys [id]} :path-params}]
+  (if-let [updated (->> recipe
+                        (adapters.recipe/wire->internal)
+                        (controllers.recipe/update-recipe! db user-id id))]
+    {:status 200 :body (adapters.recipe/internal+dates->wire updated)}
+    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
+
+(defn delete-recipe!
+  [{db :db user-id :user-id {:keys [id]} :path-params}]
+  (if-let [deleted? (controllers.recipe/delete-recipe! db user-id id)]
+    {:status 204 :body {}}
+    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
 
 (def api-routes
   #{["/healthcheck"
@@ -167,7 +204,27 @@
 
     ["/ingredients/:id/prices"
      :get (protected get-prices!)
-     :route-name :get-prices]})
+     :route-name :get-prices]
+
+    ["/recipes"
+     :post (protected create-recipe!)
+     :route-name :create-recipe]
+
+    ["/recipes"
+     :get (protected get-recipes!)
+     :route-name :get-recipes]
+
+    ["/recipes/:id"
+     :get (protected find-recipe!)
+     :route-name :find-recipe]
+
+    ["/recipes/:id"
+     :patch (protected update-recipe!)
+     :route-name :update-recipe]
+
+    ["/recipes/:id"
+     :delete (protected delete-recipe!)
+     :route-name :delete-recipe]})
 
 (def routes
   (route/expand-routes api-routes))

@@ -3,7 +3,7 @@
             [revenu-api.db.ingredient :as ingredient.db]))
 
 (defn create-ingredient!
-  [ingredient database user-id]
+  [database user-id ingredient]
   (-> (ingredient.db/insert! database user-id ingredient)
       (adapter/db->internal)))
 
