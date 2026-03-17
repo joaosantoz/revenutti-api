@@ -14,6 +14,10 @@
    :created-at (:ingredients/created_at row)
    :updated-at (:ingredients/updated_at row)})
 
+(defn update-wire->internal
+  [ingredient]
+  (select-keys ingredient [:name :unit]))
+
 (defn internal->wire
   [ingredient]
   (select-keys ingredient [:id :name :unit]))
