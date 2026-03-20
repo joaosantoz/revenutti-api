@@ -3,15 +3,13 @@
 
 (s/defschema RecipeIngredient
   {:id        s/Str
-   :quantity s/Int
+   :quantity  s/Int
    :name      s/Str
    :unit      s/Str})
 
 (s/defschema Recipe
   {:id                s/Uuid
    :name              s/Str
-   :servings    s/Int
+   :servings          s/Int
    :target_margin_bps s/Int
-   :ingredients       [RecipeIngredient]
-   :created_at        s/Str
-   :updated_at        s/Str})
+   :ingredients       [RecipeIngredient]})
