@@ -28,6 +28,19 @@
                                                    :errors errors}}))
                   ctx)))}))
 
+(def error-interceptor
+  (interceptor/interceptor
+    {:name  ::error
+     :error (fn [ctx ex]
+              (let [cause  (or (ex-cause ex) ex)
+                    data   (ex-data cause)
+                    status (get data :status 500)
+                    detail (ex-message cause)]
+                (assoc ctx :response {:status status
+                                      :body   {:title  (if (= 500 status) "Internal Server Error" "Error")
+                                               :status status
+                                               :detail detail}})))}))
+
 (def jwt-interceptor
   (interceptor/interceptor
     {:name  ::jwt

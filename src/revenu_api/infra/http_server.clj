@@ -13,7 +13,7 @@
             [revenu-api.wire.in.price-history :as in.price-history]
             [revenu-api.wire.in.recipe :as in.recipe]))
 
-(def ^:private protected [interceptors/jwt-interceptor])
+(def ^:private protected [interceptors/error-interceptor interceptors/jwt-interceptor])
 
 (defn healthcheck
   [_request]
@@ -113,31 +113,19 @@
     user-id      :user-id
     price        :json-params
     {:keys [id]} :path-params}]
-  (try
-    (let [result (->> price
-                      (adapters.price-history/wire->internal)
-                      (controllers.price-history/add-price! db user-id id)
-                      (adapters.price-history/internal->wire))]
-      {:status 201 :body result})
-    (catch Exception e
-      {:status (:status (ex-data e) 500)
-       :body   {:title  "Error"
-                :status (:status (ex-data e) 500)
-                :detail (ex-message e)}})))
+  {:status 201
+   :body   (->> price
+                (adapters.price-history/wire->internal)
+                (controllers.price-history/add-price! db user-id id)
+                (adapters.price-history/internal->wire))})
 
 (defn get-prices!
   [{db           :db
     user-id      :user-id
     {:keys [id]} :path-params}]
-  (try
-    {:status 200
-     :body   (->> (controllers.price-history/get-prices! db user-id id)
-                  (mapv adapters.price-history/internal->wire))}
-    (catch Exception e
-      {:status (:status (ex-data e) 500)
-       :body   {:title  "Error"
-                :status (:status (ex-data e) 500)
-                :detail (ex-message e)}})))
+  {:status 200
+   :body   (->> (controllers.price-history/get-prices! db user-id id)
+                (mapv adapters.price-history/internal->wire))})
 
 (defn create-recipe!
   [{db      :db
