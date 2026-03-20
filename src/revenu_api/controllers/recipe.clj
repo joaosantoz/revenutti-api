@@ -2,21 +2,20 @@
   (:require [revenu-api.adapters.recipe :as adapter]
             [revenu-api.db.recipe :as db]))
 
+(defn find-recipe!
+  [database user-id id]
+  (when-let [row (db/find! database user-id id)]
+    (adapter/db->internal row)))
+
 (defn create-recipe!
   [database user-id recipe]
-  (-> (db/insert! database user-id recipe)
-      (adapter/db->internal)
-      (assoc :ingredients (:ingredients recipe))))
+  (let [row (db/insert! database user-id recipe)]
+    (find-recipe! database user-id (str (:recipes/id row)))))
 
 (defn get-recipes!
   [database user-id]
   (->> (db/get-all! database user-id)
-       (mapv adapter/recipe+ingredients->internal)))
-
-(defn find-recipe!
-  [database user-id id]
-  (when-let [row (db/find! database user-id id)]
-    (adapter/recipe+ingredients->internal row)))
+       (mapv adapter/db->internal)))
 
 (defn update-recipe!
   [database user-id id recipe]
