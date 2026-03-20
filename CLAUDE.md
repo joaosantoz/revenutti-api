@@ -15,8 +15,7 @@ cost/margin calculations.
 | Validation | Prismatic Schema |
 | Auth | Buddy (JWT) + Google OAuth |
 | Migrations | Migratus |
-| Tests | Kaocha |
-| CI/CD | GitHub Actions |
+| Tests | clojure.test |
 
 ## Architecture: Diplomat Pattern (layer-grouped)
 
@@ -56,9 +55,10 @@ The `logic/` and `db/` layers only ever see integers.
 ```
 USERS               id, external_provider, external_id, name, email, timestamps
 INGREDIENTS         id, user_id, name, unit (g|ml|unit), is_active, timestamps
-PRICE_HISTORY       id, ingredient_id, price_cents, package_qty, purchase_date, created_at
-RECIPES             id, user_id, name, yield_portions, target_margin_bps, is_active, timestamps
-RECIPE_INGREDIENTS  id, recipe_id, ingredient_id, usage_qty, created_at
+PRICE_HISTORY       id, ingredient_id, price_cents, package_size, purchase_date, created_at
+RECIPES             id, user_id, name, servings, target_margin_bps, is_active, timestamps
+RECIPE_INGREDIENTS  id, recipe_id, ingredient_id, quantity, created_at
+REFRESH_TOKENS      id, user_id, token_hash, expires_at, created_at
 ```
 
 **Latest price rule:** `ORDER BY purchase_date DESC, id DESC LIMIT 1`
@@ -66,10 +66,10 @@ RECIPE_INGREDIENTS  id, recipe_id, ingredient_id, usage_qty, created_at
 ## Cost Calculation (pure integers, lives in `logic/recipe.clj`)
 
 ```
-cost_per_unit       = price_cents / package_qty
-ingredient_cost     = cost_per_unit * usage_qty
+cost_per_unit       = price_cents / package_size
+ingredient_cost     = cost_per_unit * quantity
 total_recipe_cost   = sum(ingredient_cost for all ingredients)
-cost_per_portion    = total_recipe_cost / yield_portions
+cost_per_portion    = total_recipe_cost / servings
 suggested_price     = cost_per_portion * 10000 / (10000 - target_margin_bps)
 ```
 
@@ -88,6 +88,8 @@ No passwords. Google OAuth only.
 4. Client POSTs code to `POST /auth/callback`
 5. API exchanges code with Google, upserts user by `(external_provider, external_id)`
 6. API returns `access_token` (15 min) + `refresh_token` (7 days)
+7. `POST /auth/refresh` exchanges a valid refresh token for a new token pair
+8. `POST /auth/logout` invalidates the refresh token (stored hash deleted from DB)
 
 ## API Conventions
 
@@ -99,8 +101,8 @@ No passwords. Google OAuth only.
 ## Coding Conventions
 
 - **Controller arg order:** `[database user-id ...]`
-- **Internal representation:** kebab-case keywords (`:yield-portions`, `:target-margin-bps`)
-- **Wire output:** snake_case keys (`:yield_portions`, `:target_margin_bps`) — converted in `internal->wire`
+- **Internal representation:** kebab-case keywords (`:servings`, `:target-margin-bps`)
+- **Wire output:** snake_case keys (`:servings`, `:target_margin_bps`) — converted in `internal->wire`
 - **Interceptor short-circuit:** always use `chain/terminate` — assigning `:response` alone does NOT stop the Pedestal chain
 - **Route protection:** `(conj protected handler)` or `(conj protected (coerce Schema) handler)` where `protected = [jwt-interceptor]`
 - **JSON aggregation:** recipes fetch ingredients via LEFT JOIN + `json_agg(json_build_object(...))` parsed with cheshire in the adapter
@@ -117,8 +119,12 @@ No passwords. Google OAuth only.
  "unit"  {:base "unit" :factor 1}}
 ```
 
-## Rate Limits
+Conversion happens in `wire->internal` for ingredients — the API accepts `kg/l/dozen/unit/g/ml` and stores only base units internally.
 
-- Free tier: 100 req/min
-- Paid tier: 500 req/min
-- Exceeded: HTTP 429
+## Not Yet Implemented (MVP backlog)
+
+- Unit conversion in ingredient wire->internal (`kg→g`, `l→ml`, `dozen→unit`)
+- `target_margin` percentage conversion (wire/in * 100 → bps, wire/out / 100 → %)
+- `GET /recipes/:id/cost` — cost + suggested price calculation
+- `POST /auth/logout` — refresh token invalidation (requires REFRESH_TOKENS table)
+- Refresh token storage and validation against DB
