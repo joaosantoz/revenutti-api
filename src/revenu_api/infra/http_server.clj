@@ -28,6 +28,7 @@
 (defn auth-callback!
   [{db             :db
     {:keys [code]} :json-params}]
+  ; Todo: remove the decode step, its for manual test only
   (let [decoded-code (java.net.URLDecoder/decode code "UTF-8")
         tokens (controllers.auth/google-callback! db decoded-code)]
     {:status 200
@@ -66,7 +67,7 @@
   [{db :db user-id :user-id}]
   {:status 200
    :body   (->> (controllers.ingredient/get-ingredients! db user-id)
-                (mapv adapters.ingredient/internal+dates->wire))})
+                (mapv adapters.ingredient/internal->wire))})
 
 (defn find-ingredient!
   [{db           :db
@@ -74,7 +75,7 @@
     {:keys [id]} :path-params}]
   (if-let [ingredient (controllers.ingredient/find-ingredient! db user-id id)]
     {:status 200
-     :body   (adapters.ingredient/internal+dates->wire ingredient)}
+     :body   (adapters.ingredient/internal->wire ingredient)}
     {:status 404
      :body   {:title  "Not Found"
               :detail "Ingredient not found"
@@ -89,7 +90,7 @@
                         (adapters.ingredient/update-wire->internal)
                         (controllers.ingredient/update-ingredient! db user-id id))]
     {:status 200
-     :body   (adapters.ingredient/internal+dates->wire updated)}
+     :body   (adapters.ingredient/internal->wire updated)}
     {:status 404
      :body   {:title  "Not Found"
               :detail "Ingredient not found"
@@ -152,12 +153,12 @@
   [{db :db user-id :user-id}]
   {:status 200
    :body   (->> (controllers.recipe/get-recipes! db user-id)
-                (mapv adapters.recipe/internal+dates->wire))})
+                (mapv adapters.recipe/internal->wire))})
 
 (defn find-recipe!
   [{db :db user-id :user-id {:keys [id]} :path-params}]
   (if-let [recipe (controllers.recipe/find-recipe! db user-id id)]
-    {:status 200 :body (adapters.recipe/internal+dates->wire recipe)}
+    {:status 200 :body (adapters.recipe/internal->wire recipe)}
     {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
 
 (defn update-recipe!
@@ -165,7 +166,7 @@
   (if-let [updated (->> recipe
                         (adapters.recipe/wire->internal)
                         (controllers.recipe/update-recipe! db user-id id))]
-    {:status 200 :body (adapters.recipe/internal+dates->wire updated)}
+    {:status 200 :body (adapters.recipe/internal->wire updated)}
     {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
 
 (defn delete-recipe!
