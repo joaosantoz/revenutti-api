@@ -8,9 +8,9 @@
   (let [query {:insert-into :price_history
                :values      [{:ingredient_id (UUID/fromString ingredient-id)
                               :price_cents   (:price-cents price-history)
-                              :package_qty   (:package_qty price-history)
+                              :package_size   (:package_size price-history)
                               :purchase_date [:cast (:purchase_date price-history) :date]}]
-               :returning   [:id :ingredient_id :price_cents :package_qty :purchase_date]}]
+               :returning   [:id :ingredient_id :price_cents :package_size :purchase_date]}]
     (db/query-one database (sql/format query))))
 
 (defn get-all!
@@ -18,7 +18,7 @@
   (let [query {:select    [[:ph.id :id]
                             [:ph.ingredient_id :ingredient_id]
                             [:ph.price_cents :price_cents]
-                            [:ph.package_qty :package_qty]
+                            [:ph.package_size :package_size]
                             [:ph.purchase_date :purchase_date]]
                :from      [[:price_history :ph]]
                :join      [[:ingredients :i] [:= :ph.ingredient_id :i.id]]

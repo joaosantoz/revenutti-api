@@ -8,10 +8,10 @@
   (when (seq ingredients)
     (jdbc/execute! tx (sql/format
                         {:insert-into :recipe_ingredients
-                         :values      (mapv (fn [{:keys [id usage_qty]}]
+                         :values      (mapv (fn [{:keys [id quantity]}]
                                              {:recipe_id     recipe-id
                                               :ingredient_id (UUID/fromString id)
-                                              :usage_qty     usage_qty})
+                                              :quantity     quantity})
                                            ingredients)}))))
 
 (defn insert!
@@ -21,9 +21,9 @@
                                              {:insert-into :recipes
                                               :values      [{:user_id           user-id
                                                              :name              (:name recipe)
-                                                             :yield_portions    (:yield_portions recipe)
+                                                             :servings    (:servings recipe)
                                                              :target_margin_bps (:target_margin_bps recipe)}]
-                                              :returning   [:id :name :yield_portions :target_margin_bps :is_active :created_at :updated_at]}))]
+                                              :returning   [:id :name :servings :target_margin_bps :is_active :created_at :updated_at]}))]
       (insert-ingredients! tx (:recipes/id recipe-row) (:ingredients recipe))
       recipe-row)))
 
@@ -32,7 +32,7 @@
   [:json_agg
    [:json_build_object
     "id"        :recipe_ingredients.ingredient_id
-    "usage_qty" :recipe_ingredients.usage_qty
+    "quantity" :recipe_ingredients.quantity
     "name"      :ingredients.name
     "unit"      :ingredients.unit]])
 
@@ -73,7 +73,7 @@
                                            {:update    :recipes
                                             :set       (cond-> {:updated_at [:now]}
                                                          (:name recipe)              (assoc :name (:name recipe))
-                                                         (:yield_portions recipe)    (assoc :yield_portions (:yield_portions recipe))
+                                                         (:servings recipe)    (assoc :servings (:servings recipe))
                                                          (:target_margin_bps recipe) (assoc :target_margin_bps (:target_margin_bps recipe)))
                                             :where     [:and
                                                         [:= :recipes.id        recipe-id]

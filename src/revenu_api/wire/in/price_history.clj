@@ -3,5 +3,5 @@
 
 (s/defschema NewPriceHistory
   {:price        s/Num
-   :package_qty  s/Int
+   :package_size  s/Int
    :purchase_date s/Str})

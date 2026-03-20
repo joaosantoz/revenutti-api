@@ -4,6 +4,6 @@
 (s/defschema Recipe
   {:id                s/Uuid
    :name              s/Str
-   :yield-portions    s/Int
+   :servings    s/Int
    :target-margin-bps s/Int
    :is-active         s/Bool})

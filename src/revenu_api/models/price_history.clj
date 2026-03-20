@@ -5,5 +5,5 @@
   {:id            s/Uuid
    :ingredient-id s/Uuid
    :price-cents   s/Int
-   :package-qty   s/Int
+   :package-size   s/Int
    :purchase-date s/Str})

@@ -15,11 +15,11 @@
   {:id            (:price_history/id row)
    :ingredient-id (:price_history/ingredient_id row)
    :price-cents   (:price_history/price_cents row)
-   :package-qty   (:price_history/package_qty row)
+   :package-size   (:price_history/package_size row)
    :purchase-date (str (:price_history/purchase_date row))})
 
 (s/defn internal->wire :- out/PriceHistory
   [price-history :- models/PriceHistory]
   {:price         (/ (:price-cents price-history) 100M)
-   :package_qty   (:package-qty price-history)
+   :package_size   (:package-size price-history)
    :purchase_date (:purchase-date price-history)})
