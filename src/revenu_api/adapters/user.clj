@@ -1,6 +1,8 @@
-(ns revenu-api.adapters.user)
+(ns revenu-api.adapters.user
+  (:require [schema.core :as s]
+            [revenu-api.models.user :refer [User]]))
 
-(defn db->internal
+(s/defn db->internal :- User
   [row]
   {:id                (:users/id row)
    :external-provider (:users/external_provider row)
