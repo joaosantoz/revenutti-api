@@ -9,12 +9,12 @@
                :values      [{:name    (:name ingredient)
                               :unit    (name (:unit ingredient))
                               :user_id user-id}]
-               :returning   [:id :name :unit :created_at]}]
+               :returning   [:id :name :unit]}]
     (db/query-one database (sql/format query))))
 
 (defn get-all!
   [database user-id]
-  (let [query {:select [:id :user_id :name :unit :created_at :updated_at]
+  (let [query {:select [:id :user_id :name :unit]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]
@@ -31,12 +31,12 @@
                            [:= :ingredients.id      (UUID/fromString id)]
                            [:= :ingredients.is_active true]
                            [:= :ingredients.user_id  user-id]]
-               :returning [:id :name :unit :created_at :updated_at]}]
+               :returning [:id :name :unit]}]
     (db/query-one database (sql/format query))))
 
 (defn find!
   [database user-id id]
-  (let [query {:select [:id :user_id :name :unit :created_at :updated_at]
+  (let [query {:select [:id :user_id :name :unit]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.id        (UUID/fromString id)]
@@ -50,7 +50,7 @@
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]
-                        [:= :ingredients.user_id  user-id]
+                        [:= :ingredients.user_id user-id]
                         [:in :ingredients.id (map #(UUID/fromString %) ids)]]}]
     (db/query database (sql/format query))))
 

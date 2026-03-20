@@ -8,23 +8,19 @@
   [ingredient :- in/NewIngredient]
   ingredient)
 
-(s/defn db->internal
+(s/defn db->internal :- models/Ingredient
   [row]
   {:id         (:ingredients/id row)
    :name       (:ingredients/name row)
    :unit       (:ingredients/unit row)
-   :is-active  (:ingredients/is_active row)
-   :created-at (:ingredients/created_at row)
-   :updated-at (:ingredients/updated_at row)})
+   :is-active  (:ingredients/is_active row)})
 
 (s/defn update-wire->internal :- models/Ingredient
   [ingredient :- in/UpdateIngredient]
   (select-keys ingredient [:name :unit]))
 
 (s/defn internal->wire :- out/Ingredient
-  [{:keys [id name unit created-at updated-at]} :- models/Ingredient]
-  (cond-> {:id         id
-           :name       name
-           :unit       unit
-           :created_at created-at}
-          updated-at (assoc :updated_at updated-at)))
+  [{:keys [id name unit]} :- models/Ingredient]
+  {:id   id
+   :name name
+   :unit unit})

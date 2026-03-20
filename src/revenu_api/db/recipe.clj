@@ -21,9 +21,9 @@
                                              {:insert-into :recipes
                                               :values      [{:user_id           user-id
                                                              :name              (:name recipe)
-                                                             :servings    (:servings recipe)
+                                                             :servings          (:servings recipe)
                                                              :target_margin_bps (:target_margin_bps recipe)}]
-                                              :returning   [:id :name :servings :target_margin_bps :is_active :created_at :updated_at]}))]
+                                              :returning   [:id :name :servings :target_margin_bps :is_active]}))]
       (insert-ingredients! tx (:recipes/id recipe-row) (:ingredients recipe))
       recipe-row)))
 
@@ -32,7 +32,7 @@
   [:json_agg
    [:json_build_object
     "id"        :recipe_ingredients.ingredient_id
-    "quantity" :recipe_ingredients.quantity
+    "quantity"  :recipe_ingredients.quantity
     "name"      :ingredients.name
     "unit"      :ingredients.unit]])
 

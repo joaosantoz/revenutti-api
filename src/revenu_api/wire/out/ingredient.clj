@@ -5,6 +5,4 @@
 (s/defschema Ingredient
   {:id         s/Uuid
    :name       s/Str
-   :unit       UnitType
-   :created_at s/Str
-   :updated_at (s/maybe s/Str)})
+   :unit       UnitType})

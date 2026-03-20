@@ -19,19 +19,15 @@
   [row]
   (assoc {:id                (:recipes/id row)
           :name              (:recipes/name row)
-          :servings    (:recipes/servings row)
+          :servings          (:recipes/servings row)
           :target-margin-bps (:recipes/target_margin_bps row)
-          :is-active         (:recipes/is_active row)
-          :created-at        (:recipes/created_at row)
-          :updated-at        (:recipes/updated_at row)}
+          :is-active         (:recipes/is_active row)}
           :ingredients       (or (parse-ingredients (:ingredients row)) [])))
 
 (s/defn internal->wire :- out/Recipe
   [recipe :- models.recipe/Recipe]
   {:id                (:id recipe)
    :name              (:name recipe)
-   :servings    (:servings recipe)
+   :servings          (:servings recipe)
    :target_margin_bps (:target-margin-bps recipe)
-   :ingredients       (:ingredients recipe)
-   :created_at        (:created-at recipe)
-   :updated_at        (:updated-at recipe)})
+   :ingredients       (:ingredients recipe)})
