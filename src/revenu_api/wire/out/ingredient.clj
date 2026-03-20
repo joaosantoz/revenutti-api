@@ -3,9 +3,8 @@
             [revenu-api.models.ingredient :refer [UnitType]]))
 
 (s/defschema Ingredient
-  {:id         s/Str
+  {:id         s/Uuid
    :name       s/Str
-   :unit       s/Str
-   :is-active  s/Bool
-   :created-at s/Str
-   :updated-at s/Str})
+   :unit       UnitType
+   :created_at s/Str
+   :updated_at (s/maybe s/Str)})
