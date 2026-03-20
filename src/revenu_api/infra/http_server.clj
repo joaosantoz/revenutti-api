@@ -39,9 +39,9 @@
 
 (defn auth-refresh!
   [{db                      :db
-    {:keys [refresh-token]} :json-params}]
+    {:keys [token]} :json-params}]
   (try
-    (let [tokens (controllers.auth/refresh-tokens! db refresh-token)]
+    (let [tokens (controllers.auth/refresh-tokens! db token)]
       {:status 200
        :body   {:access_token  (:access-token tokens)
                 :refresh_token (:refresh-token tokens)
