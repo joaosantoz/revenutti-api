@@ -24,18 +24,16 @@ Each layer is a **folder**. Each domain is a **file inside that folder**.
 Layers have strict contracts — never cross them.
 
 ```
-src/revenu/
-├── wire/in/        ← request validation + unit conversion (kg→g, reais→cents)
-├── wire/out/       ← response formatting (cents→reais, bps→%)
-├── controller/     ← orchestrates flow: calls db + logic, never business logic
+src/revenu_api/
+├── wire/in/        ← request validation schemas (Prismatic Schema)
+├── adapters/       ← db->internal and internal->wire conversions (wire/out logic lives here)
+├── controllers/    ← orchestrates flow: calls db + logic, never business logic
 ├── logic/          ← pure functions only, no DB or HTTP
-├── db/             ← SQL via next.jdbc, every query filtered by user_id
-├── model/          ← Prismatic Schema definitions (source of truth for types)
-├── middleware/     ← Pedestal interceptors: JWT auth, rate limiting, RFC 7807 errors
-├── routes.clj
-├── config.clj
-├── db_core.clj
-└── system.clj
+├── db/             ← SQL via next.jdbc + HoneySQL, every query filtered by user_id
+├── models/         ← Prismatic Schema definitions (source of truth for types)
+├── interceptors.clj ← Pedestal interceptors: JWT auth, schema coercion
+├── infra/          ← http_server.clj (routes + handlers), google.clj (OAuth), system.clj
+└── config.clj
 ```
 
 See [`docs/architecture.md`](docs/architecture.md) for layer contracts, data
@@ -45,7 +43,7 @@ flow, and business rules.
 
 **Money:** always stored as integer **cents**. Never floats.  
 **Quantities:** always stored as integer **base units** (g, ml, unit). Never kg/l.  
-**Margins:** always stored as integer **basis points** (5000 = 50%). Never percentages.  
+**Margins:** stored as integer **basis points** internally (5000 = 50%). API accepts/returns plain percentage (50.0). Conversion happens in wire/in (inbound) and adapters `internal->wire` (outbound).  
 **Conversions:** happen **only** in `wire/in` (inbound) and `wire/out` (outbound).
 The `logic/` and `db/` layers only ever see integers.
 
@@ -84,18 +82,29 @@ Edge cases:
 
 No passwords. Google OAuth only.
 
-1. Client redirects user to Google
-2. Google returns auth code
-3. Client POSTs code to `POST /auth/callback`
-4. API exchanges code with Google, upserts user by `(external_provider, external_id)`
-5. API returns `access_token` (15 min) + `refresh_token` (7 days)
+1. Client calls `GET /auth/login` → gets Google redirect URL
+2. Client redirects user to Google
+3. Google returns auth code
+4. Client POSTs code to `POST /auth/callback`
+5. API exchanges code with Google, upserts user by `(external_provider, external_id)`
+6. API returns `access_token` (15 min) + `refresh_token` (7 days)
 
 ## API Conventions
 
 - All endpoints require `Authorization: Bearer <token>` except `/auth/*`
-- Lists use cursor-based pagination (`?cursor=`, `?limit=`, default 20, max 100)
+- Lists use cursor-based pagination (not yet implemented)
 - Errors follow RFC 7807: `{ type, title, status, detail, errors }`
-- Docs available at `/api/docs` (Swagger UI, auto-generated from routes)
+- All request/response fields use **snake_case**
+
+## Coding Conventions
+
+- **Controller arg order:** `[database user-id ...]`
+- **Internal representation:** kebab-case keywords (`:yield-portions`, `:target-margin-bps`)
+- **Wire output:** snake_case keys (`:yield_portions`, `:target_margin_bps`) — converted in `internal->wire`
+- **Interceptor short-circuit:** always use `chain/terminate` — assigning `:response` alone does NOT stop the Pedestal chain
+- **Route protection:** `(conj protected handler)` or `(conj protected (coerce Schema) handler)` where `protected = [jwt-interceptor]`
+- **JSON aggregation:** recipes fetch ingredients via LEFT JOIN + `json_agg(json_build_object(...))` parsed with cheshire in the adapter
+- **HoneySQL:** `:filter` special syntax does not work nested inside select alias expressions — use adapter-side filtering instead
 
 ## Unit Conversion Map (`logic/unit_conversion.clj`)
 
