@@ -44,6 +44,16 @@
                         [:= :ingredients.user_id   user-id]]}]
     (db/query-one database (sql/format query))))
 
+(defn find-by-ids!
+  [database user-id ids]
+  (let [query {:select [[1 :exists]]
+               :from   [:ingredients]
+               :where  [:and
+                        [:= :ingredients.is_active true]
+                        [:= :ingredients.user_id  user-id]
+                        [:in :ingredients.id (map #(UUID/fromString %) ids)]]}]
+    (db/query database (sql/format query))))
+
 (defn deactivate!
   [database user-id id]
   (let [query {:update    :ingredients
