@@ -20,9 +20,9 @@
 (defn refresh-tokens!
   [database token]
   (let [claims  (auth/verify-token token)
-        _       (when-not (= "refresh" (:type claims))
-                  (throw (ex-info "Invalid token type" {:status 401})))
         user-id (UUID/fromString (:sub claims))]
+    (when-not (= "refresh" (:type claims))
+      (throw (ex-info "Invalid token type" {:status 401})))
     (when-not (db/find-by-id! database user-id)
       (throw (ex-info "User not found" {:status 401})))
     {:access-token  (auth/sign-access-token user-id)
