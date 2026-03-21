@@ -2,7 +2,7 @@
   (:require [revenu-api.adapters.user :as adapter]
             [revenu-api.db.user :as db]
             [revenu-api.infra.google :as google]
-            [revenu-api.logic.auth :as auth])
+            [revenu-api.infra.auth :as auth])
   (:import [java.util UUID]))
 
 (defn google-callback!

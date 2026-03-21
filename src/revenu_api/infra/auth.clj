@@ -1,4 +1,4 @@
-(ns revenu-api.logic.auth
+(ns revenu-api.infra.auth
   (:require [buddy.sign.jwt :as jwt]
             [revenu-api.config :as config])
   (:import [java.time Instant]))

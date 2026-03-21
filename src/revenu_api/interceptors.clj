@@ -1,7 +1,7 @@
 (ns revenu-api.interceptors
   (:require [io.pedestal.interceptor :as interceptor]
             [io.pedestal.interceptor.chain :as chain]
-            [revenu-api.logic.auth :as auth]
+            [revenu-api.infra.auth :as auth]
             [schema.core :as s])
   (:import [java.util UUID]))
 
