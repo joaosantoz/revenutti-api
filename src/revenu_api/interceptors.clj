@@ -25,7 +25,7 @@
                                           :body   {:title  "Unprocessable Entity"
                                                    :status 422
                                                    :detail "Validation failed"
-                                                   :errors errors}}))
+                                                   :errors (str errors)}}))
                   ctx)))}))
 
 (def error-interceptor
