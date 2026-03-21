@@ -2,14 +2,15 @@
   (:require [schema.core :as s]
             [revenu-api.wire.in.ingredient :as in]
             [revenu-api.wire.out.ingredient :as out]
-            [revenu-api.models.ingredient :as models]))
+            [revenu-api.models.ingredient :as models]
+            [revenu-api.wire.db.ingredient :as db]))
 
-(s/defn wire->internal
+(s/defn wire->internal :- models/Ingredient
   [ingredient :- in/NewIngredient]
   ingredient)
 
 (s/defn db->internal :- models/Ingredient
-  [row]
+  [row :- db/Ingredient]
   {:id         (:ingredients/id row)
    :name       (:ingredients/name row)
    :unit       (:ingredients/unit row)

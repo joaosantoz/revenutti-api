@@ -15,16 +15,12 @@
 
 (defn get-all!
   [database user-id ingredient-id]
-  (let [query {:select    [[:ph.id :id]
-                            [:ph.ingredient_id :ingredient_id]
-                            [:ph.price_cents :price_cents]
-                            [:ph.package_size :package_size]
-                            [:ph.purchase_date :purchase_date]]
-               :from      [[:price_history :ph]]
-               :join      [[:ingredients :i] [:= :ph.ingredient_id :i.id]]
+  (let [query {:select    [:price_history.*]
+               :from      [:price_history]
+               :join      [:ingredients [:= :price_history.ingredient_id :ingredients.id]]
                :where     [:and
-                           [:= :ph.ingredient_id (UUID/fromString ingredient-id)]
-                           [:= :i.user_id        user-id]
-                           [:= :i.is_active       true]]
-               :order-by  [[:ph.purchase_date :desc] [:ph.id :desc]]}]
+                           [:= :price_history.ingredient_id (UUID/fromString ingredient-id)]
+                           [:= :ingredients.user_id         user-id]
+                           [:= :ingredients.is_active       true]]
+               :order-by  [[:price_history.purchase_date :desc] [:price_history.id :desc]]}]
     (db/query database (sql/format query))))
