@@ -2,6 +2,7 @@
   (:require [cheshire.core :as json]
             [schema.core :as s]
             [revenu-api.wire.out.recipe :as out.recipe]
+            [revenu-api.wire.in.recipe :as in.recipe]
             [revenu-api.models.recipe :as models.recipe]
             [revenu-api.wire.db.recipe :as db.recipe]))
 
@@ -12,8 +13,10 @@
          (remove #(nil? (:id %))))))
 
 (s/defn wire->internal :- models.recipe/Recipe
-  [recipe :- out.recipe/Recipe]
-  (select-keys recipe [:name :servings :target_margin_bps :ingredients]))
+  [recipe :- in.recipe/Recipe]
+  (assoc (select-keys recipe [:name :servings :ingredients])
+    :target-margin-bps (int (* (:target_margin recipe) 100))))
+
 
 (s/defn db->internal :- models.recipe/Recipe
   [row :- db.recipe/Recipe]
@@ -22,12 +25,17 @@
           :servings          (:recipes/servings row)
           :target-margin-bps (:recipes/target_margin_bps row)
           :is-active         (:recipes/is_active row)}
-          :ingredients       (or (parse-ingredients (:ingredients row)) [])))
+    :ingredients (or (parse-ingredients (:ingredients row)) [])))
+
+(s/defn update-wire->internal :- models.recipe/Recipe
+  [recipe :- in.recipe/UpdateRecipe]
+  (cond-> (select-keys recipe [:name :servings :ingredients])
+    (:target_margin recipe) (assoc :target-margin-bps (* (:target_margin recipe) 100))))
 
 (s/defn internal->wire :- out.recipe/Recipe
   [recipe :- models.recipe/Recipe]
-  {:id                (:id recipe)
-   :name              (:name recipe)
-   :servings          (:servings recipe)
-   :target_margin_bps (:target-margin-bps recipe)
-   :ingredients       (:ingredients recipe)})
+  {:id            (:id recipe)
+   :name          (:name recipe)
+   :servings      (:servings recipe)
+   :target_margin (/ (:target-margin-bps recipe) 100M)
+   :ingredients   (:ingredients recipe)})

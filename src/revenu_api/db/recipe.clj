@@ -22,7 +22,7 @@
                                               :values      [{:user_id           user-id
                                                              :name              (:name recipe)
                                                              :servings          (:servings recipe)
-                                                             :target_margin_bps (:target_margin_bps recipe)}]
+                                                             :target_margin_bps (:target-margin-bps recipe)}]
                                               :returning   [:id :name :servings :target_margin_bps :is_active]}))]
       (insert-ingredients! tx (:recipes/id recipe-row) (:ingredients recipe))
       recipe-row)))
@@ -74,7 +74,7 @@
                                             :set       (cond-> {:updated_at [:now]}
                                                          (:name recipe)              (assoc :name (:name recipe))
                                                          (:servings recipe)    (assoc :servings (:servings recipe))
-                                                         (:target_margin_bps recipe) (assoc :target_margin_bps (:target_margin_bps recipe)))
+                                                         (:target-margin-bps recipe) (assoc :target_margin_bps (:target-margin-bps recipe)))
                                             :where     [:and
                                                         [:= :recipes.id        recipe-id]
                                                         [:= :recipes.is_active true]

@@ -152,7 +152,7 @@
 (defn update-recipe!
   [{db :db user-id :user-id recipe :json-params {:keys [id]} :path-params}]
   (if-let [updated (->> recipe
-                        (adapters.recipe/wire->internal)
+                        (adapters.recipe/update-wire->internal)
                         (controllers.recipe/update-recipe! db user-id id))]
     {:status 200 :body (adapters.recipe/internal->wire updated)}
     {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
@@ -219,7 +219,7 @@
 
     ["/recipes"
      :post (conj protected
-                 (interceptors/coerce in.recipe/NewRecipe)
+                 (interceptors/coerce in.recipe/Recipe)
                  create-recipe!)
      :route-name :create-recipe]
 

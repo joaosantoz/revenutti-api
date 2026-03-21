@@ -8,8 +8,8 @@
    :unit      s/Str})
 
 (s/defschema Recipe
-  {:id                s/Uuid
-   :name              s/Str
-   :servings          s/Int
-   :target_margin_bps s/Int
-   :ingredients       [RecipeIngredient]})
+  {:id            s/Uuid
+   :name          s/Str
+   :servings      s/Int
+   :target_margin s/Num
+   :ingredients   [RecipeIngredient]})
