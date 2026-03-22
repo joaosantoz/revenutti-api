@@ -1,9 +1,9 @@
 (ns revenu-api.wire.db.ingredient
   (:require [schema.core :as s]
-            [revenu-api.models.ingredient :refer [UnitType]]))
+            [revenu-api.models.unit :refer [BaseUnitType]]))
 
 (s/defschema Ingredient
   {:ingredients/id        s/Uuid
    :ingredients/name      s/Str
-   :ingredients/unit      UnitType
+   :ingredients/base_unit BaseUnitType
    :ingredients/is_active s/Bool})

@@ -6,15 +6,15 @@
 (defn insert!
   [database user-id ingredient]
   (let [query {:insert-into :ingredients
-               :values      [{:name    (:name ingredient)
-                              :unit    (name (:unit ingredient))
-                              :user_id user-id}]
-               :returning   [:id :name :unit]}]
+               :values      [{:name      (:name ingredient)
+                              :base_unit (:base-unit ingredient)
+                              :user_id   user-id}]
+               :returning   [:id :name :base_unit]}]
     (db/query-one database (sql/format query))))
 
 (defn get-all!
   [database user-id]
-  (let [query {:select [:id :user_id :name :unit]
+  (let [query {:select [:id :user_id :name :base_unit]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]
@@ -25,18 +25,17 @@
   [database user-id id ingredient]
   (let [query {:update    :ingredients
                :set       (cond-> {:updated_at [:now]}
-                            (:name ingredient) (assoc :name (:name ingredient))
-                            (:unit ingredient) (assoc :unit (:unit ingredient)))
+                            (:name ingredient) (assoc :name (:name ingredient)))
                :where     [:and
-                           [:= :ingredients.id      (UUID/fromString id)]
+                           [:= :ingredients.id        (UUID/fromString id)]
                            [:= :ingredients.is_active true]
-                           [:= :ingredients.user_id  user-id]]
-               :returning [:id :name :unit]}]
+                           [:= :ingredients.user_id   user-id]]
+               :returning [:id :name :base_unit]}]
     (db/query-one database (sql/format query))))
 
 (defn find!
   [database user-id id]
-  (let [query {:select [:id :user_id :name :unit]
+  (let [query {:select [:id :user_id :name :base_unit]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.id        (UUID/fromString id)]
@@ -46,7 +45,7 @@
 
 (defn find-by-ids!
   [database user-id ids]
-  (let [query {:select [[1 :exists]]
+  (let [query {:select [:id :base_unit]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]

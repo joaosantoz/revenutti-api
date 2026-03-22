@@ -8,10 +8,11 @@
   (when (seq ingredients)
     (jdbc/execute! tx (sql/format
                         {:insert-into :recipe_ingredients
-                         :values      (mapv (fn [{:keys [id quantity]}]
-                                             {:recipe_id     recipe-id
-                                              :ingredient_id (UUID/fromString id)
-                                              :quantity     quantity})
+                         :values      (mapv (fn [{:keys [id usage_quantity usage_unit]}]
+                                             {:recipe_id      recipe-id
+                                              :ingredient_id  (UUID/fromString id)
+                                              :usage_quantity usage_quantity
+                                              :usage_unit     usage_unit})
                                            ingredients)}))))
 
 (defn insert!
@@ -31,10 +32,11 @@
   []
   [:json_agg
    [:json_build_object
-    "id"        :recipe_ingredients.ingredient_id
-    "quantity"  :recipe_ingredients.quantity
-    "name"      :ingredients.name
-    "unit"      :ingredients.unit]])
+    "id"             :recipe_ingredients.ingredient_id
+    "usage_quantity" :recipe_ingredients.usage_quantity
+    "usage_unit"     :recipe_ingredients.usage_unit
+    "name"           :ingredients.name
+    "base_unit"      :ingredients.base_unit]])
 
 (defn get-all!
   [database user-id]

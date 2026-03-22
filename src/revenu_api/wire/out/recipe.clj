@@ -1,11 +1,13 @@
 (ns revenu-api.wire.out.recipe
-  (:require [schema.core :as s]))
+  (:require [schema.core :as s]
+            [revenu-api.models.unit :refer [WireUnitType]]))
 
 (s/defschema RecipeIngredient
-  {:id        s/Str
-   :quantity  s/Int
-   :name      s/Str
-   :unit      s/Str})
+  {:id             s/Str
+   :usage_quantity s/Int
+   :usage_unit     WireUnitType
+   :name           s/Str
+   :base_unit      s/Str})
 
 (s/defschema Recipe
   {:id            s/Uuid

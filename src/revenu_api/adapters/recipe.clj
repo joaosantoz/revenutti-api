@@ -15,7 +15,7 @@
 (s/defn wire->internal :- models.recipe/Recipe
   [recipe :- in.recipe/Recipe]
   (assoc (select-keys recipe [:name :servings :ingredients])
-    :target-margin-bps (int (* (:target_margin recipe) 100))))
+    :target-margin-bps (int (* (:target_margin recipe) 100M))))
 
 
 (s/defn db->internal :- models.recipe/Recipe
