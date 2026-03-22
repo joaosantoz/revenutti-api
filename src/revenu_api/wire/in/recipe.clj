@@ -14,5 +14,5 @@
 (s/defschema UpdateRecipe
   {(s/optional-key :name)          s/Str
    (s/optional-key :servings)      s/Int
-   (s/optional-key :target_margin) s/Int
+   (s/optional-key :target_margin) s/Num
    (s/optional-key :ingredients)   [RecipeIngredient]})
