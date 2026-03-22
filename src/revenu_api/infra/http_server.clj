@@ -159,7 +159,7 @@
 
 (defn delete-recipe!
   [{db :db user-id :user-id {:keys [id]} :path-params}]
-  (if-let [deleted? (controllers.recipe/delete-recipe! db user-id id)]
+  (if (controllers.recipe/delete-recipe! db user-id id)
     {:status 204 :body {}}
     {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
 
