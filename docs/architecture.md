@@ -6,43 +6,58 @@
 ## Layer Contracts
 
 ### `wire/in/`
-- Validates incoming requests with Prismatic Schema
-- Converts user-friendly units to internal base units: `kg→g`, `l→ml`, `dozen→unit`
-- Converts currency: `reais (float) → cents (int)`
-- Converts margin: `percent (float) → basis points (int)`
+- Validates incoming request shape with Prismatic Schema
+- Accepts user-friendly units (`kg/l/dozen`) — actual conversion happens in adapters
 - **Never** accesses the database or calls logic functions
 
-### `controller/`
-- Orchestrates the request: calls `db/` to fetch data, passes it to `logic/` for calculation, formats via `wire/out/`
+### `wire/out/`
+- Defines response schemas with Prismatic Schema
+- **Never** accesses the database
+
+### `wire/db/`
+- Schemas for raw DB rows as returned by next.jdbc
+- Uses namespaced keys matching the table name (e.g. `:ingredients/base_unit`)
+- **Never** used outside of adapters
+
+### `adapters/`
+- All conversions between layers live here
+- `wire->internal`: converts wire/in map → internal model (unit→base, price→cents, margin→bps)
+- `db->internal`: converts raw DB row → internal model (namespaced keys → kebab keys)
+- `internal->wire`: converts internal model → wire/out map (cents→price, bps→%)
+- **Never** accesses the database directly
+
+### `controllers/`
+- Orchestrates the request: calls `db/` to fetch/write data, calls `logic/` for calculations
+- Validates business constraints (e.g. ingredient existence, unit compatibility)
 - **Never** contains business logic or domain rules
 - One file per domain: `recipe.clj`, `ingredient.clj`, `price_history.clj`, `auth.clj`
 
 ### `logic/`
 - Pure functions only — no side effects, no DB access, no HTTP
-- All inputs and outputs are integers (cents, base units, bps)
-- Cost calculation lives here: `logic/recipe.clj`
+- Cost calculation lives here: `logic/recipe.clj` (planned)
 - Unit conversion map lives here: `logic/unit_conversion.clj`
 
 ### `db/`
-- Raw SQL via `next.jdbc`
+- Raw SQL via `next.jdbc` + HoneySQL
 - **Every single query filters by `user_id`** — this is the multi-tenant isolation boundary
-- No business logic here — just fetch/insert/update
+- No business logic here — just fetch/insert/update/deactivate
 
-### `model/`
-- Prismatic Schema definitions for domain entities
-- Single source of truth for types
-- Imported by `wire/in/`, `wire/out/`, and `db/` layers
+### `models/`
+- Prismatic Schema definitions for internal domain entities
+- Source of truth for internal types
+- `models/unit.clj` — shared unit type schemas (`BaseUnitType`, `WireUnitType`)
+- **Never** include timestamps — timestamps only appear in wire/out when needed
 
-### `wire/out/`
-- Formats data for JSON responses
-- Converts back to human-readable: `cents → reais`, `bps → percent`
-- **Never** accesses the database
+### `interceptors.clj`
+- `jwt-interceptor` — validates Bearer token, injects `user-id` UUID into request
+- `coerce` — validates request body against a Prismatic Schema, returns 422 on failure
+- `error-interceptor` — catches `ex-info` with `:status`, returns RFC 7807 error shape
+- `db-interceptor` — injects database connection into request context
 
-### `middleware/`
-- Implemented as Pedestal interceptors
-- `auth.clj` — validates JWT, injects `user_id` into request context
-- `rate_limit.clj` — enforces per-user request limits by tier
-- `error_handler.clj` — catches exceptions, returns RFC 7807 error responses
+### `infra/`
+- `http_server.clj` — route definitions and HTTP handlers
+- `auth.clj` — JWT signing and verification (access: 15 min, refresh: 7 days)
+- `google.clj` — Google OAuth HTTP calls
 
 ---
 
@@ -51,16 +66,21 @@
 ```
 HTTP Request
   ↓
-middleware/auth.clj       → validates JWT, injects user_id
-middleware/rate_limit.clj → checks limits by tier
+interceptors/error-interceptor  → catches all ex-info, returns RFC 7807
+interceptors/jwt-interceptor    → validates JWT, injects user-id
   ↓
-wire/in/recipe.clj        → validates Prismatic schema, converts units to base
+interceptors/coerce             → validates Prismatic schema, returns 422 on failure
   ↓
-controller/recipe.clj     → orchestrates:
-  ├── db/recipe.clj       → fetches data (filtered by user_id)
-  └── logic/recipe.clj    → calculates costs (pure function)
+infra/http_server.clj handler   → extracts params, calls adapter + controller
   ↓
-wire/out/recipe.clj       → formats response (cents→reais, bps→%)
+adapters/wire->internal         → converts wire input to internal model
+  ↓
+controllers/recipe.clj          → orchestrates:
+  ├── db/ingredient.clj         → validates ingredient existence + unit compatibility
+  ├── db/recipe.clj             → fetches/writes data (filtered by user_id)
+  └── logic/recipe.clj          → calculates costs (pure function, planned)
+  ↓
+adapters/internal->wire         → converts internal model to wire output
   ↓
 JSON Response
 ```
@@ -72,13 +92,15 @@ JSON Response
 | ID | Rule | Priority |
 |---|---|---|
 | BR-S01 | Every DB query filters by `user_id` (tenant isolation) | Critical |
-| BR-S02 | Rate limit: 100 req/min (free), 500 req/min (paid) | High |
-| BR-N01 | Wire/in converts all units to base before DB write. DB stores only g, ml, unit. | Critical |
-| BR-N02 | Recipe cost uses the latest price: `ORDER BY purchase_date DESC, id DESC LIMIT 1` | Critical |
-| BR-N03 | `PRICE_HISTORY` is append-only. No UPDATE or DELETE. Ever. | Critical |
-| BR-N04 | Soft-deleted ingredients remain in existing recipes for cost history. Cannot be added to new recipes. | High |
-| BR-N05 | Recipe with zero ingredients returns `cost = 0`, not an error | Medium |
-| BR-N06 | Ingredient with no price history returns `cost = null`, not zero | High |
+| BR-N01 | Ingredient `base_unit` is always stored as base (`g/ml/unit`). Adapter converts on input. | Critical |
+| BR-N02 | `usage_unit` in recipe_ingredients must be compatible with ingredient's `base_unit` | Critical |
+| BR-N03 | `package_unit` in price_history must be compatible with ingredient's `base_unit` | Critical |
+| BR-N04 | Recipe cost uses the latest price: `ORDER BY purchase_date DESC, id DESC LIMIT 1` | Critical |
+| BR-N05 | `PRICE_HISTORY` is append-only. No UPDATE or DELETE. Ever. | Critical |
+| BR-N06 | Soft-deleted ingredients remain in existing recipes for cost history. Cannot be added to new recipes. | High |
+| BR-N07 | Recipe with zero ingredients returns `cost = 0`, not an error | Medium |
+| BR-N08 | Ingredient with no price history returns `cost = null`, not zero | High |
+| BR-N09 | `target_margin_bps = 10000` → rejected with 422 (division by zero) | High |
 
 ---
 
@@ -87,90 +109,106 @@ JSON Response
 ### USERS
 | Column | Type | Notes |
 |---|---|---|
-| id | SERIAL PK | |
-| external_provider | VARCHAR(50) | `"google"` |
-| external_id | VARCHAR(255) | Unique ID from provider |
-| name | VARCHAR(255) | From OAuth profile |
-| email | VARCHAR(255) NOT NULL | From OAuth profile |
-| created_at / updated_at | TIMESTAMP | DEFAULT NOW() |
+| id | UUID PK | DEFAULT gen_random_uuid() |
+| external_provider | TEXT | `"google"` |
+| external_id | TEXT | Unique ID from provider |
+| name | TEXT | From OAuth profile |
+| email | TEXT NOT NULL | From OAuth profile |
+| created_at / updated_at | TIMESTAMPTZ | DEFAULT NOW() |
 
 Unique constraint: `(external_provider, external_id)`
 
 ### INGREDIENTS
 | Column | Type | Notes |
 |---|---|---|
-| id | SERIAL PK | |
-| user_id | INT FK → USERS | Isolation key |
-| name | VARCHAR(255) NOT NULL | |
-| unit | VARCHAR(50) NOT NULL | `g`, `ml`, or `unit` (base unit) |
+| id | UUID PK | |
+| user_id | UUID FK → USERS | Isolation key |
+| name | TEXT NOT NULL | |
+| base_unit | TEXT NOT NULL | `g`, `ml`, or `unit` — always stored as base |
 | is_active | BOOLEAN DEFAULT TRUE | Soft-delete flag |
-| created_at / updated_at | TIMESTAMP | |
+| created_at / updated_at | TIMESTAMPTZ | |
 
-Index: `(user_id, is_active)`
+Check: `base_unit IN ('g', 'ml', 'unit')`
 
 ### PRICE_HISTORY
 | Column | Type | Notes |
 |---|---|---|
-| id | SERIAL PK | |
-| ingredient_id | INT FK → INGREDIENTS | |
-| price_cents | INT NOT NULL CHECK > 0 | Price in cents |
-| package_qty | INT NOT NULL CHECK > 0 | Quantity in base unit |
+| id | UUID PK | |
+| ingredient_id | UUID FK → INGREDIENTS | |
+| price_cents | INTEGER NOT NULL | Price in cents |
+| package_quantity | INTEGER NOT NULL | Quantity as entered by user |
+| package_unit | TEXT NOT NULL | Unit as entered (`kg`, `g`, `l`, `ml`, `dozen`, `unit`) |
 | purchase_date | DATE NOT NULL | |
-| created_at | TIMESTAMP | |
+| created_at | TIMESTAMPTZ | |
 
-**Append-only. No UPDATE or DELETE endpoints.**  
-Index: `(ingredient_id, purchase_date DESC, id DESC)`
+**Append-only. No UPDATE or DELETE endpoints.**
 
 ### RECIPES
 | Column | Type | Notes |
 |---|---|---|
-| id | SERIAL PK | |
-| user_id | INT FK → USERS | Isolation key |
-| name | VARCHAR(255) NOT NULL | |
-| yield_portions | INT NOT NULL CHECK > 0 | Number of portions |
-| target_margin_bps | INT NOT NULL DEFAULT 0 | Target margin in bps (5000 = 50%) |
+| id | UUID PK | |
+| user_id | UUID FK → USERS | Isolation key |
+| name | TEXT NOT NULL | |
+| servings | INTEGER NOT NULL | Number of portions the recipe yields |
+| target_margin_bps | INTEGER NOT NULL DEFAULT 0 | Target margin in bps (5000 = 50%) |
 | is_active | BOOLEAN DEFAULT TRUE | Soft-delete flag |
-| created_at / updated_at | TIMESTAMP | |
-
-Index: `(user_id, is_active)`
+| created_at / updated_at | TIMESTAMPTZ | |
 
 ### RECIPE_INGREDIENTS
 | Column | Type | Notes |
 |---|---|---|
-| id | SERIAL PK | |
-| recipe_id | INT FK → RECIPES | |
-| ingredient_id | INT FK → INGREDIENTS | |
-| usage_qty | INT NOT NULL CHECK > 0 | Quantity in base unit |
-| created_at | TIMESTAMP | |
+| id | UUID PK | |
+| recipe_id | UUID FK → RECIPES | |
+| ingredient_id | UUID FK → INGREDIENTS | |
+| usage_quantity | INTEGER NOT NULL | Quantity as entered by user |
+| usage_unit | TEXT NOT NULL | Unit as entered — must be compatible with ingredient's base_unit |
+| created_at | TIMESTAMPTZ | |
 
-Index: `(recipe_id)`
+Check: `usage_unit IN ('kg', 'g', 'l', 'ml', 'dozen', 'unit')`
+
+### REFRESH_TOKENS
+| Column | Type | Notes |
+|---|---|---|
+| id | UUID PK | |
+| user_id | UUID FK → USERS | |
+| token_hash | TEXT NOT NULL | Hashed refresh token |
+| expires_at | TIMESTAMPTZ NOT NULL | |
+| created_at | TIMESTAMPTZ | |
 
 ---
 
 ## Cost Calculation
 
-All values are integers. No floats in logic layer.
+Planned — lives in `logic/recipe.clj`. All arithmetic uses integers (cents, base units, bps).
 
 ```
-cost_per_unit      = price_cents / package_qty
-ingredient_cost    = cost_per_unit * usage_qty
+package_factor     = conversion factor for package_unit → base
+usage_factor       = conversion factor for usage_unit → base
+
+cost_per_base_unit = price_cents / (package_quantity × package_factor)
+ingredient_cost    = cost_per_base_unit × (usage_quantity × usage_factor)
 total_recipe_cost  = Σ ingredient_cost
-cost_per_portion   = total_recipe_cost / yield_portions
-suggested_price    = cost_per_portion * 10000 / (10000 - target_margin_bps)
+cost_per_portion   = total_recipe_cost / servings
+suggested_price    = cost_per_portion × 10000 / (10000 - target_margin_bps)
 ```
 
-### Worked Example — Chocolate Cake (12 portions, 50% margin)
+### Worked Example — Chocolate Cake (12 servings, 50% margin)
 
 ```
-Flour:     price_cents=2000, package_qty=2000g, usage_qty=500g
-           cost = (2000/2000) * 500 = 500 cents
+Flour:     price_cents=2000, package_quantity=2, package_unit="kg"
+           usage_quantity=500, usage_unit="g"
+           package_factor=1000, usage_factor=1
+           cost_per_g = 2000 / (2 × 1000) = 1 cent/g
+           cost = 1 × (500 × 1) = 500 cents
 
-Chocolate: price_cents=1500, package_qty=200g, usage_qty=300g
-           cost = (1500/200) * 300 = 2250 cents
+Chocolate: price_cents=1500, package_quantity=200, package_unit="g"
+           usage_quantity=300, usage_unit="g"
+           cost_per_g = 1500 / 200 = 7.5 cents/g
+           cost = 7.5 × 300 = 2250 cents
 
-total_cost        = 500 + 2250 = 2750 cents (R$27.50)
-cost_per_portion  = 2750 / 12  = 229 cents  (R$2.29)
-suggested_price   = 229 * 10000 / (10000 - 5000) = 458 cents (R$4.58)
+total_cost       = 500 + 2250 = 2750 cents (R$27.50)
+cost_per_portion = 2750 / 12  = 229 cents  (R$2.29)
+suggested_price  = 229 × 10000 / (10000 - 5000) = 458 cents (R$4.58)
 ```
 
 ### Edge Cases
@@ -187,95 +225,82 @@ suggested_price   = 229 * 10000 / (10000 - 5000) = 458 cents (R$4.58)
 
 ## API Contract
 
-### Response Envelope
+### Errors (RFC 7807)
 
 ```json
-// Single resource
-{ "data": { ... } }
-
-// List
-{ "data": [...], "cursor": "abc123", "has_more": true }
-
-// Error (RFC 7807)
-{ "type": "validation_error", "title": "Invalid input", "status": 422,
-  "detail": "price_cents must be positive", "errors": [...] }
+{ "title": "Unprocessable Entity", "status": 422,
+  "detail": "Validation failed", "errors": "..." }
 ```
 
 ### Auth Endpoints (no token required)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| POST | `/auth/callback` | Receive OAuth code, upsert user, return JWT pair |
-| POST | `/auth/refresh` | Exchange refresh token for new access token |
-| POST | `/auth/logout` | Invalidate refresh token → 204 |
+| GET | `/auth/login` | Returns Google OAuth redirect URL |
+| POST | `/auth/callback` | Exchange OAuth code, upsert user, return JWT pair |
+| POST | `/auth/refresh` | Exchange refresh token for new token pair |
 
 ### Ingredients
 
 | Method | Endpoint | Status codes |
 |---|---|---|
-| POST | `/ingredients` | 201, 409, 422 |
-| GET | `/ingredients` | 200 — lists active, `?search=` |
-| GET | `/ingredients/:id` | 200, 404 — includes latest price |
-| PUT | `/ingredients/:id` | 200, 404, 409, 422 |
+| POST | `/ingredients` | 201, 422 |
+| GET | `/ingredients` | 200 |
+| GET | `/ingredients/:id` | 200, 404 |
+| PATCH | `/ingredients/:id` | 200, 404, 422 |
 | DELETE | `/ingredients/:id` | 204, 404 — soft-delete |
 
-**POST /ingredients request:**
+**POST /ingredients:**
 ```json
-{ "name": "Farinha", "qty_unit": "kg" }
+{ "name": "Farinha", "base_unit": "kg" }
 ```
-`wire/in` derives the base unit (`g`) automatically.
+Adapter converts `"kg"` → `"g"` before storing.
+
+**Response:**
+```json
+{ "id": "uuid", "name": "Farinha", "base_unit": "g" }
+```
 
 ### Price History
 
 | Method | Endpoint | Status codes |
 |---|---|---|
 | POST | `/ingredients/:id/prices` | 201, 404, 422 |
-| GET | `/ingredients/:id/prices` | 200, 404 — newest first, `?from=`, `?to=` |
+| GET | `/ingredients/:id/prices` | 200, 404 — newest first |
 
-**POST request:**
+**POST /ingredients/:id/prices:**
 ```json
-{ "price": 20.00, "package_qty": 2, "package_unit": "kg", "purchase_date": "2026-03-10" }
+{ "price": 20.00, "package_quantity": 2, "package_unit": "kg", "purchase_date": "2026-03-10" }
 ```
-`wire/in` converts: `20.00 → 2000 cents`, `2 kg → 2000 g`.
+`package_unit` must be compatible with the ingredient's `base_unit`. Stored as entered.
 
 ### Recipes
 
 | Method | Endpoint | Status codes |
 |---|---|---|
 | POST | `/recipes` | 201, 422 |
-| GET | `/recipes` | 200 — with calculated cost summary, `?search=` |
-| GET | `/recipes/:id` | 200, 404 — full cost breakdown |
-| PUT | `/recipes/:id` | 200, 404, 422 — metadata only |
+| GET | `/recipes` | 200 |
+| GET | `/recipes/:id` | 200, 404 |
+| PATCH | `/recipes/:id` | 200, 404, 422 |
 | DELETE | `/recipes/:id` | 204, 404 — soft-delete |
-| POST | `/recipes/:id/ingredients` | 200, 404, 409, 422 |
-| PUT | `/recipes/:id/ingredients/:iid` | 200, 404, 422 — update qty |
-| DELETE | `/recipes/:id/ingredients/:iid` | 200, 404 |
 
-**POST /recipes request:**
+**POST /recipes:**
 ```json
 {
   "name": "Bolo de Chocolate",
-  "yield_portions": 12,
-  "target_margin_percent": 50.0,
+  "servings": 12,
+  "target_margin": 50.0,
   "ingredients": [
-    { "ingredient_id": 1, "qty": 500, "unit": "g" },
-    { "ingredient_id": 3, "qty": 0.3, "unit": "kg" }
+    { "id": "uuid", "usage_quantity": 500, "usage_unit": "g" },
+    { "id": "uuid", "usage_quantity": 300, "usage_unit": "g" }
   ]
 }
 ```
-`wire/in` converts: `50.0% → 5000 bps`, `0.3 kg → 300 g`.
-
-### Dashboard
-
-| Method | Endpoint | Description |
-|---|---|---|
-| GET | `/dashboard` | Totals, most/least profitable recipe, recent price changes |
+`target_margin` is a percentage — stored internally as bps (`50.0 → 5000`).
 
 ---
 
-## Unit Conversion Map
-
-Lives in `logic/unit_conversion.clj`. Used exclusively by `wire/in`.
+## Unit Conversion Map (`logic/unit_conversion.clj`)
 
 ```clojure
 {"kg"    {:base "g"    :factor 1000}
@@ -285,6 +310,11 @@ Lives in `logic/unit_conversion.clj`. Used exclusively by `wire/in`.
  "dozen" {:base "unit" :factor 12}
  "unit"  {:base "unit" :factor 1}}
 ```
+
+Compatible unit groups (enforced in controllers):
+- Mass: `g`, `kg`
+- Volume: `ml`, `l`
+- Count: `unit`, `dozen`
 
 ---
 
@@ -297,5 +327,5 @@ Lives in `logic/unit_conversion.clj`. Used exclusively by `wire/in`.
 | **soft-delete** | Setting `is_active = false` instead of removing the row. |
 | **tenant isolation** | Every user sees only their own data, enforced by mandatory `user_id` filter in all queries. |
 | **base unit** | Smallest internal unit of measure: `g` (mass), `ml` (volume), `unit` (countable). |
-| **wire layer** | The `wire/in` and `wire/out` folders. Only place where format conversion happens. |
+| **wire layer** | The `wire/in`, `wire/out`, and `wire/db` folders. Format schemas for API boundaries. |
 | **RFC 7807** | HTTP standard for structured error responses (Problem Details). |
