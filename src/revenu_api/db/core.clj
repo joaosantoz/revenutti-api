@@ -38,4 +38,3 @@
   [database binding & body]
   `(jdbc/with-transaction [~binding (:connection ~database)]
      ~@body))
-
