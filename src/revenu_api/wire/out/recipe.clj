@@ -3,11 +3,12 @@
             [revenu-api.models.unit :refer [WireUnitType]]))
 
 (s/defschema RecipeIngredient
-  {:id             s/Str
-   :usage_quantity s/Int
-   :usage_unit     WireUnitType
-   :name           s/Str
-   :base_unit      s/Str})
+  {:id                     s/Str
+   :usage_quantity         s/Int
+   :usage_unit             WireUnitType
+   :name                   s/Str
+   :base_unit              s/Str
+   (s/optional-key :brand) (s/maybe s/Str)})
 
 (s/defschema Recipe
   {:id            s/Uuid

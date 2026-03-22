@@ -6,15 +6,16 @@
 (defn insert!
   [database user-id ingredient]
   (let [query {:insert-into :ingredients
-               :values      [{:name      (:name ingredient)
-                              :base_unit (:base-unit ingredient)
-                              :user_id   user-id}]
-               :returning   [:id :name :base_unit]}]
+               :values      [(cond-> {:name      (:name ingredient)
+                                      :base_unit (:base-unit ingredient)
+                                      :user_id   user-id}
+                               (:brand ingredient) (assoc :brand (:brand ingredient)))]
+               :returning   [:id :name :base_unit :brand]}]
     (db/query-one database (sql/format query))))
 
 (defn get-all!
   [database user-id]
-  (let [query {:select [:id :user_id :name :base_unit]
+  (let [query {:select [:id :user_id :name :base_unit :brand]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]
@@ -25,17 +26,18 @@
   [database user-id id ingredient]
   (let [query {:update    :ingredients
                :set       (cond-> {:updated_at [:now]}
-                            (:name ingredient) (assoc :name (:name ingredient)))
+                            (:name ingredient)  (assoc :name (:name ingredient))
+                            (:brand ingredient) (assoc :brand (:brand ingredient)))
                :where     [:and
                            [:= :ingredients.id        (UUID/fromString id)]
                            [:= :ingredients.is_active true]
                            [:= :ingredients.user_id   user-id]]
-               :returning [:id :name :base_unit]}]
+               :returning [:id :name :base_unit :brand]}]
     (db/query-one database (sql/format query))))
 
 (defn find!
   [database user-id id]
-  (let [query {:select [:id :user_id :name :base_unit]
+  (let [query {:select [:id :user_id :name :base_unit :brand]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.id        (UUID/fromString id)]

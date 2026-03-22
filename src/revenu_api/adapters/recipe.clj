@@ -10,7 +10,8 @@
   [raw]
   (when raw
     (->> (json/parse-string (.getValue raw) true)
-         (remove #(nil? (:id %))))))
+         (remove #(nil? (:id %)))
+         (map #(if (nil? (:brand %)) (dissoc % :brand) %)))))
 
 (s/defn wire->internal :- models.recipe/Recipe
   [recipe :- in.recipe/Recipe]

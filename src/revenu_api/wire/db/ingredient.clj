@@ -3,7 +3,8 @@
             [revenu-api.models.unit :refer [BaseUnitType]]))
 
 (s/defschema Ingredient
-  {:ingredients/id        s/Uuid
-   :ingredients/name      s/Str
-   :ingredients/base_unit BaseUnitType
-   :ingredients/is_active s/Bool})
+  {:ingredients/id                       s/Uuid
+   :ingredients/name                     s/Str
+   :ingredients/base_unit                BaseUnitType
+   :ingredients/is_active                s/Bool
+   (s/optional-key :ingredients/brand)   (s/maybe s/Str)})

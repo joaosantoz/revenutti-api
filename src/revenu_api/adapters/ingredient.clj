@@ -7,7 +7,7 @@
 
 (s/defn wire->internal :- models/Ingredient
   [ingredient :- in/NewIngredient]
-  (assoc (select-keys ingredient [:name])
+  (assoc (select-keys ingredient [:name :brand])
     :base-unit (:base_unit ingredient)))
 
 (s/defn db->internal :- models/Ingredient
@@ -15,14 +15,16 @@
   {:id        (:ingredients/id row)
    :name      (:ingredients/name row)
    :base-unit (:ingredients/base_unit row)
-   :is-active (:ingredients/is_active row)})
+   :is-active (:ingredients/is_active row)
+   :brand     (:ingredients/brand row)})
 
 (s/defn update-wire->internal :- models/Ingredient
   [ingredient :- in/UpdateIngredient]
-  (select-keys ingredient [:name]))
+  (select-keys ingredient [:name :brand]))
 
 (s/defn internal->wire :- out/Ingredient
-  [{:keys [id name base-unit]} :- models/Ingredient]
-  {:id        id
-   :name      name
-   :base_unit base-unit})
+  [{:keys [id name base-unit brand]} :- models/Ingredient]
+  (cond-> {:id        id
+           :name      name
+           :base_unit base-unit}
+    brand (assoc :brand brand)))

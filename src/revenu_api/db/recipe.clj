@@ -36,7 +36,8 @@
     "usage_quantity" :recipe_ingredients.usage_quantity
     "usage_unit"     :recipe_ingredients.usage_unit
     "name"           :ingredients.name
-    "base_unit"      :ingredients.base_unit]])
+    "base_unit"      :ingredients.base_unit
+    "brand"          :ingredients.brand]])
 
 (defn get-all!
   [database user-id]
