@@ -7,9 +7,9 @@
 
 (s/defn wire->internal :- models/PriceHistory
   [price-history :- in/NewPriceHistory]
-  (-> price-history
-      (assoc :price-cents (int (* (:price price-history) 100M)))
-      (dissoc :price)))
+  {:price-cents   (int (* (:price price-history) 100M))
+   :package-size  (:package_size price-history)
+   :purchase-date (:purchase_date price-history)})
 
 (s/defn db->internal :- models/PriceHistory
   [row :- db/PriceHistory]
