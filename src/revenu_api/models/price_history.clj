@@ -6,6 +6,6 @@
   {:id            s/Uuid
    :ingredient-id s/Uuid
    :price-cents   s/Int
-   :package-quantity  s/Int
+   :package-quantity  s/Num
    :package-unit  WireUnitType
    :purchase-date s/Str})

@@ -4,6 +4,6 @@
 
 (s/defschema NewPriceHistory
   {:price         s/Num
-   :package_quantity  s/Int
+   :package_quantity  s/Num
    :package_unit  WireUnitType
    :purchase_date s/Str})

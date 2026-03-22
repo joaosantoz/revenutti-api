@@ -4,7 +4,7 @@
 
 (s/defschema RecipeIngredient
   {:id                     s/Str
-   :usage_quantity         s/Int
+   :usage_quantity         s/Num
    :usage_unit             WireUnitType
    :name                   s/Str
    :base_unit              s/Str
