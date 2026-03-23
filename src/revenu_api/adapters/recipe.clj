@@ -6,12 +6,17 @@
             [revenu-api.models.recipe :as models.recipe]
             [revenu-api.wire.db.recipe :as db.recipe]))
 
+(defn- cents->currency
+  [amount]
+  (when amount
+    (.setScale (/ amount 100M) 2 java.math.RoundingMode/HALF_UP)))
+
 (s/defn ^:private parse-ingredients :- (s/maybe [out.recipe/RecipeIngredient])
   [raw]
   (when raw
     (->> (json/parse-string (.getValue raw) true)
          (remove #(nil? (:id %)))
-         (map #(if (nil? (:brand %)) (dissoc % :brand) %)))))
+         (mapv #(if (nil? (:brand %)) (dissoc % :brand) %)))))
 
 (s/defn wire->internal :- models.recipe/Recipe
   [recipe :- in.recipe/Recipe]
@@ -31,12 +36,31 @@
 (s/defn update-wire->internal :- models.recipe/Recipe
   [recipe :- in.recipe/UpdateRecipe]
   (cond-> (select-keys recipe [:name :servings :ingredients])
-    (:target_margin recipe) (assoc :target-margin-bps (* (:target_margin recipe) 100))))
+    (:target_margin recipe) (assoc :target-margin-bps (int (* (:target_margin recipe) 100M)))))
 
 (s/defn internal->wire :- out.recipe/Recipe
   [recipe :- models.recipe/Recipe]
   {:id            (:id recipe)
    :name          (:name recipe)
    :servings      (:servings recipe)
-   :target_margin (/ (:target-margin-bps recipe) 100M)
+   :target_margin (double (/ (:target-margin-bps recipe) 100M))
    :ingredients   (:ingredients recipe)})
+
+(defn- cost-ingredient->wire
+  [ingredient]
+  (cond-> {:id             (:id ingredient)
+           :name           (:name ingredient)
+           :usage_quantity (:usage-quantity ingredient)
+           :usage_unit     (:usage-unit ingredient)
+           :cost           (cents->currency (:cost ingredient))}
+    (:brand ingredient) (assoc :brand (:brand ingredient))))
+
+(s/defn pricing->wire :- out.recipe/RecipePricing
+  [recipe      :- models.recipe/Recipe
+   pricing-result :- models.recipe/RecipePricing]
+  {:target_margin               (double (/ (:target-margin-bps recipe) 100M))
+   :total_cost                  (cents->currency (:total-cost pricing-result))
+   :cost_per_portion            (cents->currency (:cost-per-portion pricing-result))
+   :suggested_price_per_portion (cents->currency (:suggested-price-per-portion pricing-result))
+   :suggested_price_total       (cents->currency (:suggested-price-total pricing-result))
+   :ingredients                 (mapv cost-ingredient->wire (:ingredients pricing-result))})

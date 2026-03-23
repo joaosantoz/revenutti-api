@@ -86,22 +86,24 @@ WireUnitType = (s/enum "kg" "g" "l" "ml" "dozen" "unit")  ;; accepted in wire/in
 - `"ml"` base → accepts `"ml"`, `"l"`
 - `"unit"` base → accepts `"unit"`, `"dozen"`
 
-## Cost Calculation (planned, lives in `logic/recipe.clj`)
+## Cost Calculation (`logic/recipe.clj`)
+
+`target_margin` is treated as **markup over cost** (not margin over price) — the common model for small food businesses in Brazil. 100% markup = sell at double the cost.
 
 ```
 convert usage_quantity from usage_unit → base_unit factor
 convert package_quantity from package_unit → base_unit factor
-cost_per_base_unit  = price_cents / (package_quantity × package_factor)
-ingredient_cost     = cost_per_base_unit × (usage_quantity × usage_factor)
-total_recipe_cost   = sum(ingredient_cost for all ingredients)
-cost_per_portion    = total_recipe_cost / servings
-suggested_price     = cost_per_portion × 10000 / (10000 - target_margin_bps)
+cost_per_base_unit          = price_cents / (package_quantity × package_factor)
+ingredient_cost             = cost_per_base_unit × (usage_quantity × usage_factor)
+total_recipe_cost           = sum(ingredient_cost for all ingredients)
+cost_per_portion            = total_recipe_cost / servings
+suggested_price_per_portion = cost_per_portion × (1 + target_margin_bps / 10000)
+suggested_price_total       = suggested_price_per_portion × servings
 ```
 
 Edge cases:
 - Recipe with no ingredients → `total_cost = 0`, not an error
-- Ingredient with no price history → `cost = null`, recipe total = `null`
-- `target_margin_bps = 10000` → rejected with 422 (division by zero)
+- Ingredient with no price history → `cost = null`, all cost/price fields = `null`
 
 ## Auth Flow
 
@@ -139,7 +141,7 @@ No passwords. Google OAuth only.
 
 ## Not Yet Implemented (MVP backlog)
 
-- `GET /recipes/:id/cost` — cost + suggested price calculation
+- `GET /recipes/:id/pricing` — pricing analysis (cost, suggested sell price, per portion and total)
 - `POST /auth/logout` — refresh token invalidation (requires REFRESH_TOKENS table)
 - Refresh token storage and validation against DB
 - Cursor-based pagination on list endpoints

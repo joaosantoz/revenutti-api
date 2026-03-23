@@ -38,7 +38,7 @@
               :expires_in    900}}))
 
 (defn auth-refresh!
-  [{db                      :db
+  [{db              :db
     {:keys [token]} :json-params}]
   (try
     (let [tokens (controllers.auth/refresh-tokens! db token)]
@@ -100,7 +100,7 @@
   [{db           :db
     user-id      :user-id
     {:keys [id]} :path-params}]
-  (if-let [deleted? (controllers.ingredient/delete-ingredient! db user-id id)]
+  (if (controllers.ingredient/delete-ingredient! db user-id id)
     {:status 204
      :body   {}}
     {:status 404
@@ -138,30 +138,58 @@
                 (adapters.recipe/internal->wire))})
 
 (defn get-recipes!
-  [{db :db user-id :user-id}]
+  [{db      :db
+    user-id :user-id}]
   {:status 200
    :body   (->> (controllers.recipe/get-recipes! db user-id)
                 (mapv adapters.recipe/internal->wire))})
 
 (defn find-recipe!
-  [{db :db user-id :user-id {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
   (if-let [recipe (controllers.recipe/find-recipe! db user-id id)]
-    {:status 200 :body (adapters.recipe/internal->wire recipe)}
-    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
+    {:status 200
+     :body (adapters.recipe/internal->wire recipe)}
+    {:status 404
+     :body {:title "Not Found"
+            :detail "Recipe not found"
+            :status 404}}))
 
 (defn update-recipe!
-  [{db :db user-id :user-id recipe :json-params {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    recipe       :json-params
+    {:keys [id]} :path-params}]
   (if-let [updated (->> recipe
                         (adapters.recipe/update-wire->internal)
                         (controllers.recipe/update-recipe! db user-id id))]
-    {:status 200 :body (adapters.recipe/internal->wire updated)}
-    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
+    {:status 200
+     :body (adapters.recipe/internal->wire updated)}
+    {:status 404
+     :body {:title "Not Found"
+            :detail "Recipe not found"
+            :status 404}}))
 
 (defn delete-recipe!
-  [{db :db user-id :user-id {:keys [id]} :path-params}]
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
   (if (controllers.recipe/delete-recipe! db user-id id)
-    {:status 204 :body {}}
-    {:status 404 :body {:title "Not Found" :detail "Recipe not found" :status 404}}))
+    {:status 204
+     :body {}}
+    {:status 404
+     :body {:title "Not Found"
+            :detail "Recipe not found"
+            :status 404}}))
+
+(defn get-recipe-pricing!
+  [{db           :db
+    user-id      :user-id
+    {:keys [id]} :path-params}]
+  (let [{:keys [recipe pricing-result]} (controllers.recipe/get-pricing! db user-id id)]
+    {:status 200
+     :body (adapters.recipe/pricing->wire recipe pricing-result)}))
 
 (def api-routes
   #{["/healthcheck"
@@ -242,7 +270,12 @@
     ["/recipes/:id"
      :delete (conj protected
                    delete-recipe!)
-     :route-name :delete-recipe]})
+     :route-name :delete-recipe]
+
+    ["/recipes/:id/pricing"
+     :get (conj protected
+                get-recipe-pricing!)
+     :route-name :get-recipe-pricing]})
 
 (def routes
   (route/expand-routes api-routes))
