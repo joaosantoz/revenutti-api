@@ -33,8 +33,12 @@
   :main ^:skip-aot revenu-api.core
   :target-path "target/%s"
   :plugins [[lein-environ "1.2.0"]]
-  :aliases {"migrate"  ["run" "-m" "revenu-api.db.migration/migrate"]
-            "rollback" ["run" "-m" "revenu-api.db.migration/rollback"]}
+  :test-selectors {:unit        (fn [test-metadata] (re-find #"\.unit\." (str (:ns test-metadata))))
+                  :integration (fn [test-metadata] (re-find #"\.integration\." (str (:ns test-metadata))))}
+  :aliases {"migrate"     ["run" "-m" "revenu-api.db.migration/migrate"]
+            "rollback"    ["run" "-m" "revenu-api.db.migration/rollback"]
+            "unit"        ["test" ":unit"]
+            "integration" ["test" ":integration"]}
   :profiles {:dev        {:source-paths ["dev"]
                          :dependencies [[org.clojure/tools.namespace "1.4.4"]]}
              :uberjar   {:aot :all
