@@ -37,12 +37,19 @@
                   :integration (fn [test-metadata] (re-find #"\.integration\." (str (:ns test-metadata))))}
   :aliases {"migrate"     ["run" "-m" "revenu-api.db.migration/migrate"]
             "rollback"    ["run" "-m" "revenu-api.db.migration/rollback"]
-            "unit"        ["test" ":unit"]
-            "integration" ["test" ":integration"]}
+            "test"        ["with-profile" "+test" "test"]
+            "unit"        ["with-profile" "+test" "test" ":unit"]
+            "integration" ["with-profile" "+test" "test" ":integration"]}
   :profiles {:dev        {:source-paths ["dev"]
                          :dependencies [[org.clojure/tools.namespace "1.4.4"]]}
              :uberjar   {:aot :all
                          :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
              :repl-start {:injections   [(require '[revenu-api.components :as components])
                                          (components/bootstrap!)]
-                          :repl-options {:init-ns user}}})
+                          :repl-options {:init-ns user}}
+             :test      {:env {:app-env     "test"
+                               :port        "3000"
+                               :db-url      "jdbc:postgresql://localhost:5432/revenu_test"
+                               :db-user     "revenu"
+                               :db-password "secret"
+                               :jwt-secret  "test-secret-32-chars-exactly!!!"}}})

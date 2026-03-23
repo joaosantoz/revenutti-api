@@ -18,6 +18,7 @@
   [user-id]
   (jwt/sign {:sub  (str user-id)
              :type "refresh"
+             :jti  (str (java.util.UUID/randomUUID))
              :exp  (+ (.getEpochSecond (Instant/now)) refresh-token-ttl)}
             config/jwt-secret
             {:alg :hs256}))
