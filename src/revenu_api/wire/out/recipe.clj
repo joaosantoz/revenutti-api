@@ -7,7 +7,6 @@
    :usage_quantity         s/Num
    :usage_unit             WireUnitType
    :name                   s/Str
-   :base_unit              s/Str
    (s/optional-key :brand) (s/maybe s/Str)})
 
 (s/defschema Recipe

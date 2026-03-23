@@ -53,7 +53,6 @@
                        :usage_quantity 1.5
                        :usage_unit     "kg"
                        :name           "Flour"
-                       :base_unit      "g"
                        :brand          nil}
             pg-object (ingredients->pg-object [flour])
             result    (adapter/db->internal {:recipes/id                id
