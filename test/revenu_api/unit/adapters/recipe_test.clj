@@ -1,13 +1,14 @@
 (ns revenu-api.unit.adapters.recipe-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [cheshire.core :as json]
+            [clojure.test :refer [deftest is testing]]
             [revenu-api.adapters.recipe :as adapter])
   (:import [java.util UUID]
            [org.postgresql.util PGobject]))
 
-(defn- make-pg-object
-  [json-str]
+(defn- ingredients->pg-object
+  [ingredients]
   (doto (PGobject.)
-    (.setValue json-str)))
+    (.setValue (json/generate-string ingredients))))
 
 (deftest wire->internal-test
   (testing "converts target_margin percentage to basis points"
@@ -32,7 +33,13 @@
         (is (= [] (:ingredients result)))))
 
     (testing "LEFT JOIN null row is filtered out"
-      (let [pg-object (make-pg-object "[{\"id\":null,\"usage_quantity\":null,\"usage_unit\":null,\"name\":null,\"base_unit\":null,\"brand\":null}]")
+      (let [null-row  {:id             nil
+                       :usage_quantity nil
+                       :usage_unit     nil
+                       :name           nil
+                       :base_unit      nil
+                       :brand          nil}
+            pg-object (ingredients->pg-object [null-row])
             result    (adapter/db->internal {:recipes/id                id
                                              :recipes/name              "Cake"
                                              :recipes/servings          4
@@ -42,7 +49,13 @@
         (is (= [] (:ingredients result)))))
 
     (testing "valid ingredients are parsed from JSON"
-      (let [pg-object (make-pg-object "[{\"id\":\"abc\",\"usage_quantity\":1.5,\"usage_unit\":\"kg\",\"name\":\"Flour\",\"base_unit\":\"g\",\"brand\":null}]")
+      (let [flour     {:id             "abc"
+                       :usage_quantity 1.5
+                       :usage_unit     "kg"
+                       :name           "Flour"
+                       :base_unit      "g"
+                       :brand          nil}
+            pg-object (ingredients->pg-object [flour])
             result    (adapter/db->internal {:recipes/id                id
                                              :recipes/name              "Cake"
                                              :recipes/servings          4
