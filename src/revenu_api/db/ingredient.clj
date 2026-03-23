@@ -15,11 +15,12 @@
 
 (defn get-all!
   [database user-id]
-  (let [query {:select [:id :user_id :name :base_unit :brand]
-               :from   [:ingredients]
-               :where  [:and
-                        [:= :ingredients.is_active true]
-                        [:= :ingredients.user_id  user-id]]}]
+  (let [query {:select   [:id :user_id :name :base_unit :brand]
+               :from     [:ingredients]
+               :where    [:and
+                          [:= :ingredients.is_active true]
+                          [:= :ingredients.user_id  user-id]]
+               :order-by [[:created_at :asc]]}]
     (db/query database (sql/format query))))
 
 (defn update!
