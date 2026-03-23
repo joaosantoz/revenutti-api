@@ -56,11 +56,13 @@
     (:brand ingredient) (assoc :brand (:brand ingredient))))
 
 (s/defn pricing->wire :- out.recipe/RecipePricing
-  [recipe      :- models.recipe/Recipe
-   pricing-result :- models.recipe/RecipePricing]
-  {:target_margin               (double (/ (:target-margin-bps recipe) 100M))
-   :total_cost                  (cents->currency (:total-cost pricing-result))
-   :cost_per_portion            (cents->currency (:cost-per-portion pricing-result))
-   :suggested_price_per_portion (cents->currency (:suggested-price-per-portion pricing-result))
-   :suggested_price_total       (cents->currency (:suggested-price-total pricing-result))
-   :ingredients                 (mapv cost-ingredient->wire (:ingredients pricing-result))})
+  [recipe         :- models.recipe/Recipe
+   pricing-result :- models.recipe/RecipePricing
+   actual-margin  :- (s/maybe s/Num)]
+  (cond-> {:target_margin               (double (/ (:target-margin-bps recipe) 100M))
+           :total_cost                  (cents->currency (:total-cost pricing-result))
+           :cost_per_portion            (cents->currency (:cost-per-portion pricing-result))
+           :suggested_price_per_portion (cents->currency (:suggested-price-per-portion pricing-result))
+           :suggested_price_total       (cents->currency (:suggested-price-total pricing-result))
+           :ingredients                 (mapv cost-ingredient->wire (:ingredients pricing-result))}
+    actual-margin (assoc :actual_margin (double (.setScale actual-margin 2 java.math.RoundingMode/HALF_UP)))))

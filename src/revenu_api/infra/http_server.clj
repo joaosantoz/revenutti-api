@@ -184,12 +184,15 @@
             :status 404}}))
 
 (defn get-recipe-pricing!
-  [{db           :db
-    user-id      :user-id
-    {:keys [id]} :path-params}]
-  (let [{:keys [recipe pricing-result]} (controllers.recipe/get-pricing! db user-id id)]
+  [{db                                    :db
+    user-id                               :user-id
+    {:keys [id]}                          :path-params
+    {:keys [selling_price_total]}         :query-params}]
+  (let [selling-price-total               (when selling_price_total (parse-double selling_price_total))
+        {:keys [recipe pricing-result
+                actual-margin]}           (controllers.recipe/get-pricing! db user-id id selling-price-total)]
     {:status 200
-     :body (adapters.recipe/pricing->wire recipe pricing-result)}))
+     :body   (adapters.recipe/pricing->wire recipe pricing-result actual-margin)}))
 
 (def api-routes
   #{["/healthcheck"

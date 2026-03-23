@@ -26,6 +26,14 @@
        :suggested-price-per-portion suggested-price-per-portion
        :suggested-price-total       suggested-price-total})))
 
+(defn actual-margin
+  [selling-price-total-cents total-cost-cents]
+  (when (and (some? total-cost-cents) (pos? total-cost-cents))
+    (with-precision 10 :rounding HALF_UP
+      (* (/ (- (bigdec selling-price-total-cents) (bigdec total-cost-cents))
+            (bigdec total-cost-cents))
+         100M))))
+
 (defn recipe-pricing
   [recipe ingredients-with-prices]
   (let [{:keys [servings target-margin-bps]} recipe

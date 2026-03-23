@@ -65,15 +65,25 @@
              :package-unit     (:price_history/package_unit price)}))
         ingredients))
 
+(defn- calculate-actual-margin
+  [selling-price-total pricing-result]
+  (when selling-price-total
+    (logic.recipe/actual-margin
+      (* (bigdec selling-price-total) 100M)
+      (:total-cost pricing-result))))
+
 (defn get-pricing!
-  [database user-id id]
+  [database user-id id selling-price-total]
   (let [recipe (find-recipe! database user-id id)]
     (when-not recipe
       (throw (ex-info "Recipe not found" {:status 404})))
-    (let [ingredients    (:ingredients recipe)
-          ingredient-ids (map :id ingredients)
-          latest-prices  (price-history.db/latest-prices-for-ingredients! database ingredient-ids)
-          price-by-id    (into {} (map (fn [price] [(str (:price_history/ingredient_id price)) price]) latest-prices))
-          ingredients-with-prices       (enrich-with-prices ingredients price-by-id)
-          pricing-result    (logic.recipe/recipe-pricing recipe ingredients-with-prices)]
-      {:recipe recipe :pricing-result pricing-result})))
+    (let [ingredients             (:ingredients recipe)
+          ingredient-ids          (map :id ingredients)
+          latest-prices           (price-history.db/latest-prices-for-ingredients! database ingredient-ids)
+          price-by-id             (into {} (map (fn [price] [(str (:price_history/ingredient_id price)) price]) latest-prices))
+          ingredients-with-prices (enrich-with-prices ingredients price-by-id)
+          pricing-result          (logic.recipe/recipe-pricing recipe ingredients-with-prices)
+          actual-margin           (calculate-actual-margin selling-price-total pricing-result)]
+      {:recipe          recipe
+       :pricing-result  pricing-result
+       :actual-margin   actual-margin})))
