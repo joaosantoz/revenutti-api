@@ -2,5 +2,12 @@ target/
 .git/
 .lein-env
 .env
+.env.*
+!.env.example
 *.md
 doc/
+.idea/
+.DS_Store
+.nrepl-port
+docker-compose.dev.yml
+test/

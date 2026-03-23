@@ -5,7 +5,7 @@
 (def db-user     (env :db-user))
 (def db-password (env :db-password))
 (def app-env     (env :app-env))
-(def port        (Integer/parseInt (env :port)))
+(defn port [] (Integer/parseInt (env :port)))
 
 (def google-client-id     (env :google-client-id))
 (def google-client-secret (env :google-client-secret))

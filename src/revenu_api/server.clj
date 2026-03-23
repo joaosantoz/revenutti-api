@@ -9,7 +9,8 @@
 (defn- service-config [db]
   {::http/routes  http-server/routes
    ::http/type    :jetty
-   ::http/port    config/port
+   ::http/port    (config/port)
+   ::http/host    "0.0.0.0"
    ::http/join?   false})
 
 (defrecord Server [db server]
@@ -22,7 +23,7 @@
                                                        (interceptors/db-interceptor db)])
                      http/create-server
                      http/start)]
-      (println (str "Server running on port " config/port))
+      (println (str "Server running on port " (config/port)))
       (assoc component :server server)))
 
   (stop [component]

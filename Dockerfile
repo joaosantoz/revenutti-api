@@ -1,22 +1,19 @@
-# --- Build stage ---
 FROM clojure:temurin-21-lein AS builder
 
 WORKDIR /app
 
-# Cache dependencies first
 COPY project.clj .
 RUN lein deps
 
 COPY . .
-RUN lein uberjar
+RUN lein uberjar && cp target/uberjar/revenu-api-*-standalone.jar app.jar
 
-# --- Run stage ---
-FROM eclipse-temurin:21-jre-jammy
+FROM eclipse-temurin:21-jre-alpine
 
 WORKDIR /app
 
-COPY --from=builder /app/target/uberjar/revenu-api-*-standalone.jar app.jar
+COPY --from=builder /app/app.jar app.jar
 
-EXPOSE 8080
+EXPOSE 3000
 
 CMD ["java", "-jar", "app.jar"]
