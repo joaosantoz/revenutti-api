@@ -141,7 +141,4 @@ No passwords. Google OAuth only.
 
 ## Not Yet Implemented (MVP backlog)
 
-- `GET /recipes/:id/pricing` — pricing analysis (cost, suggested sell price, per portion and total)
-- `POST /auth/logout` — refresh token invalidation (requires REFRESH_TOKENS table)
-- Refresh token storage and validation against DB
 - Cursor-based pagination on list endpoints

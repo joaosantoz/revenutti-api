@@ -53,6 +53,13 @@
                 :status 401
                 :detail (ex-message e)}})))
 
+(defn auth-logout!
+  [{db              :db
+    {:keys [token]} :json-params}]
+  (controllers.auth/logout! db token)
+  {:status 204
+   :body   {}})
+
 (defn create-ingredient!
   [{db         :db
     user-id    :user-id
@@ -210,6 +217,10 @@
     ["/auth/refresh"
      :post auth-refresh!
      :route-name :auth-refresh]
+
+    ["/auth/logout"
+     :post auth-logout!
+     :route-name :auth-logout]
 
     ["/ingredients"
      :get (conj protected

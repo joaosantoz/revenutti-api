@@ -1,7 +1,8 @@
 (ns revenu-api.infra.auth
   (:require [buddy.sign.jwt :as jwt]
             [revenu-api.config :as config])
-  (:import [java.time Instant]))
+  (:import [java.security MessageDigest]
+           [java.time Instant]))
 
 (def ^:private access-token-ttl  900)    ;; 15 minutes
 (def ^:private refresh-token-ttl 604800) ;; 7 days
@@ -24,3 +25,12 @@
 (defn verify-token
   [token]
   (jwt/unsign token config/jwt-secret {:alg :hs256}))
+
+(defn hash-token
+  [token]
+  (let [digest (.digest (MessageDigest/getInstance "SHA-256") (.getBytes token "UTF-8"))]
+    (apply str (map #(format "%02x" %) digest))))
+
+(defn refresh-token-expires-at
+  []
+  (Instant/ofEpochSecond (+ (.getEpochSecond (Instant/now)) refresh-token-ttl)))

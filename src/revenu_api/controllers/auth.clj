@@ -1,9 +1,19 @@
 (ns revenu-api.controllers.auth
   (:require [revenu-api.adapters.user :as adapter]
             [revenu-api.db.user :as db]
+            [revenu-api.db.refresh-token :as refresh-token.db]
             [revenu-api.infra.google :as google]
             [revenu-api.infra.auth :as auth])
   (:import [java.util UUID]))
+
+(defn- issue-tokens!
+  [database user-id]
+  (let [refresh-token (auth/sign-refresh-token user-id)]
+    (refresh-token.db/insert! database user-id
+                              (auth/hash-token refresh-token)
+                              (auth/refresh-token-expires-at))
+    {:access-token  (auth/sign-access-token user-id)
+     :refresh-token refresh-token}))
 
 (defn google-callback!
   [database code]
@@ -14,8 +24,7 @@
                                                      :name              (:name google-user)
                                                      :email             (:email google-user)})
                           (adapter/db->internal))]
-    {:access-token  (auth/sign-access-token (:id user))
-     :refresh-token (auth/sign-refresh-token (:id user))}))
+    (issue-tokens! database (:id user))))
 
 (defn refresh-tokens!
   [database token]
@@ -23,7 +32,11 @@
         user-id (UUID/fromString (:sub claims))]
     (when-not (= "refresh" (:type claims))
       (throw (ex-info "Invalid token type" {:status 401})))
-    (when-not (db/find-by-id! database user-id)
-      (throw (ex-info "User not found" {:status 401})))
-    {:access-token  (auth/sign-access-token user-id)
-     :refresh-token (auth/sign-refresh-token user-id)}))
+    (when-not (refresh-token.db/find-by-hash! database (auth/hash-token token))
+      (throw (ex-info "Token not found or already revoked" {:status 401})))
+    (refresh-token.db/delete-by-hash! database (auth/hash-token token))
+    (issue-tokens! database user-id)))
+
+(defn logout!
+  [database token]
+  (refresh-token.db/delete-by-hash! database (auth/hash-token token)))
