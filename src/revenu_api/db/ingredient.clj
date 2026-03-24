@@ -58,6 +58,13 @@
                         [:in :ingredients.id (map #(UUID/fromString %) ids)]]}]
     (db/query database (sql/format query))))
 
+(defn find-by-ids-for-pricing!
+  [database ids]
+  (let [query {:select [:id :unit_size]
+               :from   [:ingredients]
+               :where  [:in :ingredients.id (map #(UUID/fromString %) ids)]}]
+    (db/query database (sql/format query))))
+
 (defn deactivate!
   [database user-id id]
   (let [query {:update    :ingredients
