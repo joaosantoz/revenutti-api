@@ -1,4 +1,21 @@
 services:
+  app:
+    image: revenu-api-dev
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+      pull: false
+    working_dir: /app
+    env_file: .env.dev
+    ports:
+      - "8080:8080"
+      - "7888:7888"
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:16-alpine
     ports:

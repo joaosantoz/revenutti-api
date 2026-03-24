@@ -46,7 +46,9 @@
                          :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}
              :repl-start {:injections   [(require '[revenu-api.components :as components])
                                          (components/bootstrap!)]
-                          :repl-options {:init-ns user}}
+                          :repl-options {:init-ns user
+                                         :port    7888
+                                         :host    "0.0.0.0"}}
              :test      {:env {:app-env     "test"
                                :port        "3000"
                                :db-url      "jdbc:postgresql://localhost:5432/revenu_test"

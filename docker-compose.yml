@@ -4,14 +4,8 @@ services:
       context: .
       pull: false
     ports:
-      - "3000:3000"
+      - "8080:8080"
     env_file: .env
-    environment:
-      APP_ENV: production
-      PORT: "3000"
-      DB_URL: jdbc:postgresql://db:5432/revenu
-      DB_USER: revenu
-      DB_PASSWORD: secret
     depends_on:
       db:
         condition: service_healthy
