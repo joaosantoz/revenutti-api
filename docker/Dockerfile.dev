@@ -1,0 +1,8 @@
+FROM clojure:temurin-21-lein
+
+WORKDIR /app
+
+COPY project.clj .
+RUN lein with-profile +dev,+repl-start deps
+
+CMD ["lein", "with-profile", "+repl-start", "repl", ":headless"]

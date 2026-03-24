@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+      dockerfile: docker/Dockerfile
       pull: false
     ports:
       - "8080:8080"

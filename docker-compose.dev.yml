@@ -3,7 +3,7 @@ services:
     image: revenu-api-dev
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: docker/Dockerfile.dev
       pull: false
     working_dir: /app
     env_file: .env.dev
