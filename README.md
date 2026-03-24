@@ -69,18 +69,18 @@ Connect your editor to the nREPL server at `localhost:7888`.
 | POST | `/ingredients/:id/prices` | Add price entry |
 | GET | `/ingredients/:id/prices` | List price history (newest first) |
 
-`base_unit` accepts `g`, `ml`, or `unit` — this is the base unit stored for the ingredient and cannot be changed after creation.
+`base_unit` accepts `g`, `ml`, or `unit` — immutable after creation.
+
+`unit_size` is an optional integer for bottle-based purchasing (e.g. `unit_size: 900` on a `ml` ingredient means 1 unit = 900ml). When set, `package_unit: "unit"` is accepted in price history. Only valid for `g` or `ml` base units.
 
 ```json
 POST /ingredients
-{ "name": "Farinha", "base_unit": "g" }
-
-→ { "id": "uuid", "name": "Farinha", "base_unit": "g" }
+{ "name": "Óleo de Soja", "base_unit": "ml", "unit_size": 900 }
 ```
 
 ```json
 POST /ingredients/:id/prices
-{ "price": 20.00, "package_quantity": 2, "package_unit": "kg", "purchase_date": "2026-03-10" }
+{ "price": 8.99, "package_quantity": 1, "package_unit": "unit", "purchase_date": "2026-03-10" }
 ```
 
 ### Recipes
@@ -92,6 +92,7 @@ POST /ingredients/:id/prices
 | GET | `/recipes/:id` | Get recipe with ingredients |
 | PATCH | `/recipes/:id` | Update recipe |
 | DELETE | `/recipes/:id` | Soft-delete recipe |
+| GET | `/recipes/:id/pricing` | Get cost and suggested price (optional `?selling_price_total=` for actual margin) |
 
 `target_margin` is a percentage (e.g. `50.0` = 50%). Stored internally as basis points.
 

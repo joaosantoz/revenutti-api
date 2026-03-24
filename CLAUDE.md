@@ -14,7 +14,7 @@ cost/margin calculations.
 | SQL | next.jdbc (raw SQL, no ORM) |
 | Validation | Prismatic Schema |
 | Auth | Buddy (JWT) + Google OAuth |
-| Migrations | Migratus |
+| Migrations | Ragtime |
 | Tests | clojure.test |
 
 ## Architecture: Diplomat Pattern (layer-grouped)
@@ -54,7 +54,7 @@ src/revenu_api/
 
 ```
 USERS               id, external_provider, external_id, name, email, timestamps
-INGREDIENTS         id, user_id, name, base_unit (g|ml|unit), is_active, timestamps
+INGREDIENTS         id, user_id, name, base_unit (g|ml|unit), unit_size (nullable integer), is_active, timestamps
 PRICE_HISTORY       id, ingredient_id, price_cents, package_quantity, package_unit, purchase_date, created_at
 RECIPES             id, user_id, name, servings, target_margin_bps, is_active, timestamps
 RECIPE_INGREDIENTS  id, recipe_id, ingredient_id, usage_quantity, usage_unit, created_at
@@ -82,9 +82,11 @@ WireUnitType = (s/enum "kg" "g" "l" "ml" "dozen" "unit")  ;; accepted in wire/in
 ```
 
 **Unit compatibility** (enforced in controllers before insert):
-- `"g"` base → accepts `"g"`, `"kg"`
-- `"ml"` base → accepts `"ml"`, `"l"`
-- `"unit"` base → accepts `"unit"`, `"dozen"`
+- `"g"` base → accepts `"g"`, `"kg"` (also `"unit"` when `unit_size` is set)
+- `"ml"` base → accepts `"ml"`, `"l"` (also `"unit"` when `unit_size` is set)
+- `"unit"` base → accepts `"unit"`, `"dozen"` (never accepts `unit_size`)
+
+**`unit_size`:** optional integer on ingredients. Represents how many base units are in one commercial unit (e.g. a 900ml bottle → `unit_size = 900` with `base_unit = "ml"`). When set, unlocks `package_unit = "unit"` in price history (buy by the bottle). Immutable once any price entry with `package_unit = "unit"` exists. Only valid for `g` or `ml` base units.
 
 ## Cost Calculation (`logic/recipe.clj`)
 
@@ -96,9 +98,9 @@ convert package_quantity from package_unit → base_unit factor
 cost_per_base_unit          = price_cents / (package_quantity × package_factor)
 ingredient_cost             = cost_per_base_unit × (usage_quantity × usage_factor)
 total_recipe_cost           = sum(ingredient_cost for all ingredients)
-cost_per_portion            = total_recipe_cost / servings
-suggested_price_per_portion = cost_per_portion × (1 + target_margin_bps / 10000)
-suggested_price_total       = suggested_price_per_portion × servings
+portion_cost             = total_recipe_cost / servings
+suggested_portion_price  = portion_cost × (1 + target_margin_bps / 10000)
+suggested_total_price    = suggested_portion_price × servings
 ```
 
 Edge cases:
@@ -121,7 +123,7 @@ No passwords. Google OAuth only.
 ## API Conventions
 
 - All endpoints require `Authorization: Bearer <token>` except `/auth/*`
-- Lists use cursor-based pagination (not yet implemented)
+- Lists are returned without pagination
 - Errors follow RFC 7807: `{ type, title, status, detail, errors }`
 - All request/response fields use **snake_case**
 
@@ -137,5 +139,6 @@ No passwords. Google OAuth only.
 - **Models never include timestamps** — timestamps only appear in wire/out when needed, renamed (e.g. `:updated-at` → `:last-updated-at`)
 - **Unit compatibility errors:** include the accepted units in the message — use `logic/accepted-units` + `str/join`
 - **Recipe PATCH ingredients:** replaces the full ingredient list — each ingredient must be complete (`id`, `usage_quantity`, `usage_unit`). No partial per-ingredient updates.
-- **`db/ingredient/find-by-ids!`:** returns `[:id :base_unit]` — used for both existence check (count) and unit compatibility validation in the recipe controller
+- **`db/ingredient/find-by-ids!`:** returns `[:id :base_unit :unit_size]` — used for existence check and unit compatibility validation in the recipe controller
+- **`db/ingredient/find-by-ids-for-pricing!`:** returns `[:id :unit_size]` without `is_active` filter — used for pricing so soft-deleted ingredients still contribute their `unit_size`
 
