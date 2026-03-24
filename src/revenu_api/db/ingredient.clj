@@ -29,7 +29,7 @@
   (let [query {:update    :ingredients
                :set       (cond-> {:updated_at [:now]}
                             (:name ingredient)                (assoc :name (:name ingredient))
-                            (:brand ingredient)               (assoc :brand (:brand ingredient))
+                            (contains? ingredient :brand)      (assoc :brand (:brand ingredient))
                             (contains? ingredient :unit-size) (assoc :unit_size (:unit-size ingredient)))
                :where     [:and
                            [:= :ingredients.id        (UUID/fromString id)]
