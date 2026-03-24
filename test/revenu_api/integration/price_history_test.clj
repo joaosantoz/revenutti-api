@@ -39,6 +39,29 @@
                                                    :package-unit     "g"
                                                    :purchase-date    "2024-01-01"}))))))
 
+(deftest add-price-unit-package-with-unit-size-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml" :unit-size 900})
+          result     (controllers.price-history/add-price! db (:id user) (str (:id ingredient))
+                                                           {:price-cents      2000
+                                                            :package-quantity 10
+                                                            :package-unit     "unit"
+                                                            :purchase-date    "2024-06-01"})]
+      (is (= "unit" (:package-unit result)))
+      (is (= 10     (:package-quantity result))))))
+
+(deftest add-price-unit-package-rejected-without-unit-size-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml"})]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"Invalid package_unit"
+            (controllers.price-history/add-price! db (:id user) (str (:id ingredient))
+                                                  {:price-cents      2000
+                                                   :package-quantity 10
+                                                   :package-unit     "unit"
+                                                   :purchase-date    "2024-06-01"}))))))
+
 (deftest get-prices-ordered-test
   (with-rollback [db]
     (let [user       (factories/make-user! db)

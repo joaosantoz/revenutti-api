@@ -141,6 +141,25 @@
       (is (some? actual-margin))
       (is (= 100M actual-margin)))))
 
+(deftest get-pricing-with-unit-size-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml" :unit-size 900})
+          ;; 1 bottle of 900ml at 900 cents → 1 cent/ml
+          _          (factories/make-price! db (:id ingredient) {:price-cents      900
+                                                                  :package-quantity 1
+                                                                  :package-unit     "unit"
+                                                                  :purchase-date    "2024-01-01"})
+          recipe     (factories/make-recipe! db (:id user) {:servings          1
+                                                            :target-margin-bps 0
+                                                            :ingredients       [{:id             (str (:id ingredient))
+                                                                                 :usage_quantity 100
+                                                                                 :usage_unit     "ml"}]})
+          {:keys [pricing-result]} (controllers.recipe/get-pricing! db (:id user) (str (:id recipe)) nil)]
+      ;; cost-per-ml = 900 / (1 * 900) = 1 cent/ml
+      ;; ingredient-cost = 1 * 100 = 100 cents
+      (is (= 100M (:total-cost pricing-result))))))
+
 (deftest get-pricing-recipe-not-found-test
   (with-rollback [db]
     (let [user (factories/make-user! db)]

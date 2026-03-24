@@ -29,6 +29,15 @@
                              [:price_history.id :desc]]}]
       (db/query database (sql/format query)))))
 
+(defn has-unit-purchases?
+  [database ingredient-id]
+  (let [query {:select [[:%count.* :count]]
+               :from   [:price_history]
+               :where  [:and
+                        [:= :price_history.ingredient_id (UUID/fromString ingredient-id)]
+                        [:= :price_history.package_unit "unit"]]}]
+    (pos? (:count (db/query-one database (sql/format query))))))
+
 (defn get-all!
   [database user-id ingredient-id]
   (let [query {:select    [:price_history.*]

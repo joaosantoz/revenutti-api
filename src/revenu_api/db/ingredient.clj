@@ -9,13 +9,14 @@
                :values      [(cond-> {:name      (:name ingredient)
                                       :base_unit (:base-unit ingredient)
                                       :user_id   user-id}
-                               (:brand ingredient) (assoc :brand (:brand ingredient)))]
-               :returning   [:id :name :base_unit :brand]}]
+                               (:brand ingredient)     (assoc :brand (:brand ingredient))
+                               (:unit-size ingredient) (assoc :unit_size (:unit-size ingredient)))]
+               :returning   [:id :name :base_unit :brand :unit_size]}]
     (db/query-one database (sql/format query))))
 
 (defn get-all!
   [database user-id]
-  (let [query {:select   [:id :user_id :name :base_unit :brand]
+  (let [query {:select   [:id :user_id :name :base_unit :brand :unit_size]
                :from     [:ingredients]
                :where    [:and
                           [:= :ingredients.is_active true]
@@ -27,18 +28,19 @@
   [database user-id id ingredient]
   (let [query {:update    :ingredients
                :set       (cond-> {:updated_at [:now]}
-                            (:name ingredient)  (assoc :name (:name ingredient))
-                            (:brand ingredient) (assoc :brand (:brand ingredient)))
+                            (:name ingredient)                (assoc :name (:name ingredient))
+                            (:brand ingredient)               (assoc :brand (:brand ingredient))
+                            (contains? ingredient :unit-size) (assoc :unit_size (:unit-size ingredient)))
                :where     [:and
                            [:= :ingredients.id        (UUID/fromString id)]
                            [:= :ingredients.is_active true]
                            [:= :ingredients.user_id   user-id]]
-               :returning [:id :name :base_unit :brand]}]
+               :returning [:id :name :base_unit :brand :unit_size]}]
     (db/query-one database (sql/format query))))
 
 (defn find!
   [database user-id id]
-  (let [query {:select [:id :user_id :name :base_unit :brand]
+  (let [query {:select [:id :user_id :name :base_unit :brand :unit_size]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.id        (UUID/fromString id)]
@@ -48,7 +50,7 @@
 
 (defn find-by-ids!
   [database user-id ids]
-  (let [query {:select [:id :base_unit]
+  (let [query {:select [:id :base_unit :unit_size]
                :from   [:ingredients]
                :where  [:and
                         [:= :ingredients.is_active true]

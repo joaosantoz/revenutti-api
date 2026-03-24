@@ -10,11 +10,12 @@
   (let [ingredient (ingredient.db/find! database user-id ingredient-id)]
     (when-not ingredient
       (throw (ex-info "Ingredient not found" {:status 404})))
-    (let [base-unit (:ingredients/base_unit ingredient)]
-      (when-not (logic/compatible? base-unit (:package-unit price-history))
+    (let [base-unit (:ingredients/base_unit ingredient)
+          unit-size (:ingredients/unit_size ingredient)]
+      (when-not (logic/compatible? base-unit (:package-unit price-history) unit-size)
         (throw (ex-info (format "Invalid package_unit '%s', accepted: %s"
                                 (:package-unit price-history)
-                                (str/join ", " (logic/accepted-units base-unit)))
+                                (str/join ", " (logic/accepted-units base-unit unit-size)))
                         {:status 422}))))
     (-> (price-history.db/insert! database ingredient-id price-history)
         (adapter/db->internal))))

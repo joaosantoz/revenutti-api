@@ -3,10 +3,12 @@
 
 (defn- ingredient-cost
   [ingredient]
-  (let [{:keys [price-cents package-quantity package-unit usage-quantity usage-unit]} ingredient]
+  (let [{:keys [price-cents package-quantity package-unit usage-quantity usage-unit unit-size]} ingredient]
     (when (some? price-cents)
       (with-precision 10 :rounding HALF_UP
-        (let [package-factor (bigdec (logic.unit/factor package-unit))
+        (let [package-factor (if (and (= package-unit "unit") (some? unit-size))
+                               (bigdec unit-size)
+                               (bigdec (logic.unit/factor package-unit)))
               usage-factor   (bigdec (logic.unit/factor usage-unit))
               cost-per-base  (/ (bigdec price-cents)
                                 (* (bigdec package-quantity) package-factor))

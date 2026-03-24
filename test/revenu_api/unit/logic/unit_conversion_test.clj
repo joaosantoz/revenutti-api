@@ -35,9 +35,23 @@
     (is (unit-conversion/compatible? "ml" "l")))
   (testing "count base accepts count units"
     (is (unit-conversion/compatible? "unit" "unit"))
-    (is (unit-conversion/compatible? "unit" "dozen"))))
+    (is (unit-conversion/compatible? "unit" "dozen")))
+  (testing "unit accepted for ml base when unit-size provided"
+    (is (unit-conversion/compatible? "ml" "unit" 900)))
+  (testing "unit accepted for g base when unit-size provided"
+    (is (unit-conversion/compatible? "g" "unit" 500)))
+  (testing "unit rejected for ml base without unit-size"
+    (is (not (unit-conversion/compatible? "ml" "unit"))))
+  (testing "unit rejected for unit base even with unit-size"
+    (is (not (unit-conversion/compatible? "unit" "ml" 900)))))
 
 (deftest accepted-units-test
   (is (= #{"g" "kg"}       (unit-conversion/accepted-units "g")))
   (is (= #{"ml" "l"}       (unit-conversion/accepted-units "ml")))
-  (is (= #{"unit" "dozen"} (unit-conversion/accepted-units "unit"))))
+  (is (= #{"unit" "dozen"} (unit-conversion/accepted-units "unit")))
+  (testing "unit added to accepted units for ml base when unit-size provided"
+    (is (= #{"ml" "l" "unit"} (unit-conversion/accepted-units "ml" 900))))
+  (testing "unit added to accepted units for g base when unit-size provided"
+    (is (= #{"g" "kg" "unit"} (unit-conversion/accepted-units "g" 500))))
+  (testing "unit base unchanged even with unit-size"
+    (is (= #{"unit" "dozen"} (unit-conversion/accepted-units "unit" 12)))))

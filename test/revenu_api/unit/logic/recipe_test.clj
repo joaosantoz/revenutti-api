@@ -65,7 +65,18 @@
                       :usage-quantity 500 :usage-unit "g"
                       :price-cents 1000 :package-quantity 1 :package-unit "kg"}
           result     (logic.recipe/recipe-pricing {:servings 1 :target-margin-bps 0} [ingredient])]
-      (is (= 500M (:total-cost result))))))
+      (is (= 500M (:total-cost result)))))
+
+  (testing "unit-size used as package factor when package-unit is unit"
+    ;; 100ml oil from 1 bottle (900ml) at 900 cents
+    ;; cost-per-ml = 900 / (1 * 900) = 1 cent/ml
+    ;; ingredient-cost = 1 * 100 = 100 cents
+    (let [ingredient {:id "uuid" :name "Soybean Oil"
+                      :usage-quantity 100 :usage-unit "ml"
+                      :unit-size 900
+                      :price-cents 900 :package-quantity 1 :package-unit "unit"}
+          result     (logic.recipe/recipe-pricing {:servings 1 :target-margin-bps 0} [ingredient])]
+      (is (= 100M (:total-cost result))))))
 
 (deftest actual-margin-test
   (testing "100% markup when selling for double the cost"

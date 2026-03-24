@@ -50,6 +50,33 @@
       (testing "returns nil for unknown id"
         (is (nil? (controllers.ingredient/update-ingredient! db (:id user) (str (java.util.UUID/randomUUID)) {:name "X"})))))))
 
+(deftest create-ingredient-with-unit-size-test
+  (with-rollback [db]
+    (let [user   (factories/make-user! db)
+          result (controllers.ingredient/create-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml" :unit-size 900})]
+      (is (= 900 (:unit-size result))))))
+
+(deftest create-ingredient-unit-size-rejected-for-unit-base-test
+  (with-rollback [db]
+    (let [user (factories/make-user! db)]
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unit_size"
+            (controllers.ingredient/create-ingredient! db (:id user) {:name "Eggs" :base-unit "unit" :unit-size 12}))))))
+
+(deftest update-ingredient-unit-size-immutable-after-unit-purchases-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml" :unit-size 900})]
+      (factories/make-price! db (:id ingredient) {:package-quantity 1 :package-unit "unit"})
+      (is (thrown-with-msg? clojure.lang.ExceptionInfo #"unit_size"
+            (controllers.ingredient/update-ingredient! db (:id user) (str (:id ingredient)) {:unit-size 500}))))))
+
+(deftest update-ingredient-unit-size-allowed-before-unit-purchases-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user) {:name "Soybean Oil" :base-unit "ml" :unit-size 900})
+          result     (controllers.ingredient/update-ingredient! db (:id user) (str (:id ingredient)) {:unit-size 500})]
+      (is (= 500 (:unit-size result))))))
+
 (deftest delete-ingredient-test
   (with-rollback [db]
     (let [user       (factories/make-user! db)

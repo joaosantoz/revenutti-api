@@ -3,10 +3,12 @@
             [revenu-api.models.unit :refer [BaseUnitType]]))
 
 (s/defschema NewIngredient
-  {:name                     s/Str
-   :base_unit                BaseUnitType
-   (s/optional-key :brand)   (s/maybe s/Str)})
+  {:name                         s/Str
+   :base_unit                    BaseUnitType
+   (s/optional-key :brand)       (s/maybe s/Str)
+   (s/optional-key :unit_size)   (s/maybe s/Int)})
 
 (s/defschema UpdateIngredient
-  {(s/optional-key :name)    s/Str
-   (s/optional-key :brand)   (s/maybe s/Str)})
+  {(s/optional-key :name)        s/Str
+   (s/optional-key :brand)       (s/maybe s/Str)
+   (s/optional-key :unit_size)   (s/maybe s/Int)})

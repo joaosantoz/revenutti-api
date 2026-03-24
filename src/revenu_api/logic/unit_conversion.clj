@@ -22,9 +22,18 @@
   (get-in conversion-map [unit :factor]))
 
 (defn compatible?
-  [ingredient-base-unit unit]
-  (contains? (get compatible-units ingredient-base-unit) unit))
+  ([ingredient-base-unit unit]
+   (compatible? ingredient-base-unit unit nil))
+  ([ingredient-base-unit unit unit-size]
+   (or (contains? (get compatible-units ingredient-base-unit) unit)
+       (and (some? unit-size)
+            (#{"ml" "g"} ingredient-base-unit)
+            (= unit "unit")))))
 
 (defn accepted-units
-  [ingredient-base-unit]
-  (get compatible-units ingredient-base-unit))
+  ([ingredient-base-unit]
+   (accepted-units ingredient-base-unit nil))
+  ([ingredient-base-unit unit-size]
+   (cond-> (get compatible-units ingredient-base-unit)
+     (and (some? unit-size) (#{"ml" "g"} ingredient-base-unit))
+     (conj "unit"))))

@@ -51,15 +51,15 @@
   (recipe.db/deactivate! database user-id id))
 
 (defn- enrich-with-prices
-  [ingredients price-by-id]
-  (mapv (fn
-          [ingredient]
+  [ingredients price-by-id unit-size-by-id]
+  (mapv (fn [ingredient]
           (let [price (get price-by-id (:id ingredient))]
             {:id               (:id ingredient)
              :name             (:name ingredient)
              :brand            (:brand ingredient)
              :usage-quantity   (:usage_quantity ingredient)
              :usage-unit       (:usage_unit ingredient)
+             :unit-size        (get unit-size-by-id (:id ingredient))
              :price-cents      (:price_history/price_cents price)
              :package-quantity (:price_history/package_quantity price)
              :package-unit     (:price_history/package_unit price)}))
@@ -81,7 +81,9 @@
           ingredient-ids          (map :id ingredients)
           latest-prices           (price-history.db/latest-prices-for-ingredients! database ingredient-ids)
           price-by-id             (into {} (map (fn [price] [(str (:price_history/ingredient_id price)) price]) latest-prices))
-          ingredients-with-prices (enrich-with-prices ingredients price-by-id)
+          ingredient-details      (ingredient.db/find-by-ids! database user-id ingredient-ids)
+          unit-size-by-id         (into {} (map (fn [row] [(str (:ingredients/id row)) (:ingredients/unit_size row)]) ingredient-details))
+          ingredients-with-prices (enrich-with-prices ingredients price-by-id unit-size-by-id)
           pricing-result          (logic.recipe/recipe-pricing recipe ingredients-with-prices)
           actual-margin           (calculate-actual-margin selling-price-total pricing-result)]
       {:recipe          recipe
