@@ -34,7 +34,7 @@
 
 ### `logic/`
 - Pure functions only — no side effects, no DB access, no HTTP
-- Cost calculation lives here: `logic/recipe.clj` (planned)
+- Cost calculation lives here: `logic/recipe.clj`
 - Unit conversion map lives here: `logic/unit_conversion.clj`
 
 ### `db/`
@@ -179,7 +179,7 @@ Check: `usage_unit IN ('kg', 'g', 'l', 'ml', 'dozen', 'unit')`
 
 ## Cost Calculation
 
-Planned — lives in `logic/recipe.clj`. All arithmetic uses integers (cents, base units, bps).
+Lives in `logic/recipe.clj`. All arithmetic uses integers (cents, base units, bps).
 
 ```
 package_factor     = conversion factor for package_unit → base

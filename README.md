@@ -16,8 +16,6 @@ B2B SaaS API for dynamic recipe costing. Food entrepreneurs register ingredients
 
 ### Prerequisites
 
-- Java 21+
-- Leiningen
 - Docker
 
 ### Setup
@@ -25,26 +23,29 @@ B2B SaaS API for dynamic recipe costing. Food entrepreneurs register ingredients
 1. Clone the repo and copy the env template:
 
 ```bash
-cp profiles.example.clj profiles.clj
+cp .env.example .env
 ```
 
-2. Fill in your credentials in `profiles.clj`:
+2. Fill in your credentials in `.env`:
    - Google OAuth client ID and secret from [Google Cloud Console](https://console.cloud.google.com)
    - A JWT secret (at least 32 chars: `openssl rand -base64 32`)
 
-3. Start the development environment (Docker + REPL):
+3. Start the stack:
 
 ```bash
-./dev.sh
+docker compose up --build
 ```
 
-4. Run migrations:
+Migrations run automatically on startup. The API will be available at `http://localhost:8080`.
+
+### Development
 
 ```bash
-lein migrate
+cp .env.example .env.dev  # fill in dev credentials
+docker compose -f docker-compose.dev.yml up --build
 ```
 
-The API will be available at `http://localhost:8080`.
+Connect your editor to the nREPL server at `localhost:7888`.
 
 ## API
 

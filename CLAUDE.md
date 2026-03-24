@@ -139,6 +139,3 @@ No passwords. Google OAuth only.
 - **Recipe PATCH ingredients:** replaces the full ingredient list — each ingredient must be complete (`id`, `usage_quantity`, `usage_unit`). No partial per-ingredient updates.
 - **`db/ingredient/find-by-ids!`:** returns `[:id :base_unit]` — used for both existence check (count) and unit compatibility validation in the recipe controller
 
-## Not Yet Implemented (MVP backlog)
-
-- Cursor-based pagination on list endpoints
