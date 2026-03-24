@@ -16,7 +16,9 @@
   [database token-hash]
   (let [query {:select [:id :user_id]
                :from   [:refresh_tokens]
-               :where  [:= :refresh_tokens.token_hash token-hash]}]
+               :where  [:and
+                        [:= :refresh_tokens.token_hash token-hash]
+                        [:> :refresh_tokens.expires_at [:now]]]}]
     (db/query-one database (sql/format query))))
 
 (defn delete-by-hash!
