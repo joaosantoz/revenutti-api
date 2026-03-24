@@ -55,7 +55,13 @@
                                                    :detail "Missing Authorization header"}}))
                   (try
                     (let [claims (auth/verify-token token)]
-                      (assoc-in ctx [:request :user-id] (UUID/fromString (:sub claims))))
+                      (if (= "refresh" (:type claims))
+                        (chain/terminate
+                          (assoc ctx :response {:status 401
+                                                :body   {:title  "Unauthorized"
+                                                         :status 401
+                                                         :detail "Invalid token type"}}))
+                        (assoc-in ctx [:request :user-id] (UUID/fromString (:sub claims)))))
                     (catch Exception _
                       (chain/terminate
                         (assoc ctx :response {:status 401
