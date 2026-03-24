@@ -10,7 +10,7 @@ B2B SaaS API for dynamic recipe costing. Food entrepreneurs register ingredients
 - **SQL:** next.jdbc + HoneySQL
 - **Validation:** Prismatic Schema
 - **Auth:** Google OAuth + JWT (Buddy)
-- **Migrations:** Migratus
+- **Migrations:** Ragtime
 
 ## Getting Started
 
@@ -69,11 +69,11 @@ Connect your editor to the nREPL server at `localhost:7888`.
 | POST | `/ingredients/:id/prices` | Add price entry |
 | GET | `/ingredients/:id/prices` | List price history (newest first) |
 
-`base_unit` accepts `kg`, `g`, `l`, `ml`, `dozen`, or `unit` — stored internally as the base unit (`g`, `ml`, `unit`).
+`base_unit` accepts `g`, `ml`, or `unit` — this is the base unit stored for the ingredient and cannot be changed after creation.
 
 ```json
 POST /ingredients
-{ "name": "Farinha", "base_unit": "kg" }
+{ "name": "Farinha", "base_unit": "g" }
 
 → { "id": "uuid", "name": "Farinha", "base_unit": "g" }
 ```

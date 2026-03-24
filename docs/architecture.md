@@ -100,7 +100,7 @@ JSON Response
 | BR-N06 | Soft-deleted ingredients remain in existing recipes for cost history. Cannot be added to new recipes. | High |
 | BR-N07 | Recipe with zero ingredients returns `cost = 0`, not an error | Medium |
 | BR-N08 | Ingredient with no price history returns `cost = null`, not zero | High |
-| BR-N09 | `target_margin_bps = 10000` → rejected with 422 (division by zero) | High |
+| BR-N09 | `target_margin_bps = 10000` → 100% markup, `suggested_price = cost × 2` | Medium |
 
 ---
 
@@ -189,7 +189,7 @@ cost_per_base_unit = price_cents / (package_quantity × package_factor)
 ingredient_cost    = cost_per_base_unit × (usage_quantity × usage_factor)
 total_recipe_cost  = Σ ingredient_cost
 cost_per_portion   = total_recipe_cost / servings
-suggested_price    = cost_per_portion × 10000 / (10000 - target_margin_bps)
+suggested_price    = cost_per_portion × (1 + target_margin_bps / 10000)
 ```
 
 ### Worked Example — Chocolate Cake (12 servings, 50% margin)
@@ -208,7 +208,7 @@ Chocolate: price_cents=1500, package_quantity=200, package_unit="g"
 
 total_cost       = 500 + 2250 = 2750 cents (R$27.50)
 cost_per_portion = 2750 / 12  = 229 cents  (R$2.29)
-suggested_price  = 229 × 10000 / (10000 - 5000) = 458 cents (R$4.58)
+suggested_price  = 229 × (1 + 5000 / 10000) = 229 × 1.5 = 344 cents (R$3.44)
 ```
 
 ### Edge Cases
@@ -219,7 +219,7 @@ suggested_price  = 229 × 10000 / (10000 - 5000) = 458 cents (R$4.58)
 | Ingredient with no price history | `ingredient_cost = null`, `total_cost = null` |
 | Soft-deleted ingredient in existing recipe | still calculates normally |
 | `target_margin_bps = 0` | `suggested_price = cost_per_portion` |
-| `target_margin_bps = 10000` | rejected with HTTP 422 (division by zero) |
+| `target_margin_bps = 10000` | `suggested_price = cost_per_portion × 2` (100% markup) |
 
 ---
 
