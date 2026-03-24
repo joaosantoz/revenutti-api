@@ -9,5 +9,5 @@ doc/
 .idea/
 .DS_Store
 .nrepl-port
-docker-compose.dev.yml
+docker-compose*.yml
 test/
