@@ -28,9 +28,7 @@
 (defn auth-callback!
   [{db             :db
     {:keys [code]} :json-params}]
-  ; Todo: remove the decode step, its for manual test only
-  (let [decoded-code (java.net.URLDecoder/decode code "UTF-8")
-        tokens (controllers.auth/google-callback! db decoded-code)]
+  (let [tokens (controllers.auth/google-callback! db code)]
     {:status 200
      :body   {:access_token  (:access-token tokens)
               :refresh_token (:refresh-token tokens)
@@ -40,18 +38,12 @@
 (defn auth-refresh!
   [{db              :db
     {:keys [token]} :json-params}]
-  (try
-    (let [tokens (controllers.auth/refresh-tokens! db token)]
-      {:status 200
-       :body   {:access_token  (:access-token tokens)
-                :refresh_token (:refresh-token tokens)
-                :token_type    "Bearer"
-                :expires_in    900}})
-    (catch Exception e
-      {:status 401
-       :body   {:title  "Unauthorized"
-                :status 401
-                :detail (ex-message e)}})))
+  (let [tokens (controllers.auth/refresh-tokens! db token)]
+    {:status 200
+     :body   {:access_token  (:access-token tokens)
+              :refresh_token (:refresh-token tokens)
+              :token_type    "Bearer"
+              :expires_in    900}}))
 
 (defn auth-logout!
   [{db              :db
@@ -195,7 +187,10 @@
     user-id                               :user-id
     {:keys [id]}                          :path-params
     {:keys [selling_price_total]}         :query-params}]
-  (let [selling-price-total               (when selling_price_total (parse-double selling_price_total))
+  (let [selling-price-total               (when selling_price_total
+                                            (try (parse-double selling_price_total)
+                                                 (catch NumberFormatException _
+                                                   (throw (ex-info "Invalid selling_price_total: must be a number" {:status 422})))))
         {:keys [recipe pricing-result
                 actual-margin]}           (controllers.recipe/get-pricing! db user-id id selling-price-total)]
     {:status 200
@@ -211,15 +206,15 @@
      :route-name :auth-login]
 
     ["/auth/callback"
-     :post auth-callback!
+     :post [interceptors/error-interceptor auth-callback!]
      :route-name :auth-callback]
 
     ["/auth/refresh"
-     :post auth-refresh!
+     :post [interceptors/error-interceptor auth-refresh!]
      :route-name :auth-refresh]
 
     ["/auth/logout"
-     :post auth-logout!
+     :post [interceptors/error-interceptor auth-logout!]
      :route-name :auth-logout]
 
     ["/ingredients"
