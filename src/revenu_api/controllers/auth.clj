@@ -28,7 +28,9 @@
 
 (defn refresh-tokens!
   [database token]
-  (let [claims  (auth/verify-token token)
+  (let [claims  (try (auth/verify-token token)
+                     (catch Exception _
+                       (throw (ex-info "Invalid or expired token" {:status 401}))))
         user-id (UUID/fromString (:sub claims))]
     (when-not (= "refresh" (:type claims))
       (throw (ex-info "Invalid token type" {:status 401})))
