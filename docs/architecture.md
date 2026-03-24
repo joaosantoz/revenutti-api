@@ -95,6 +95,8 @@ JSON Response
 | BR-N01 | Ingredient `base_unit` is always stored as base (`g/ml/unit`). Adapter converts on input. | Critical |
 | BR-N02 | `usage_unit` in recipe_ingredients must be compatible with ingredient's `base_unit` | Critical |
 | BR-N03 | `package_unit` in price_history must be compatible with ingredient's `base_unit` | Critical |
+| BR-N10 | `unit_size` only valid for `g` or `ml` base units. Immutable once any price entry with `package_unit = "unit"` exists. | High |
+| BR-N11 | When `unit_size` is set, `package_unit = "unit"` is accepted in price history and `usage_unit = "unit"` in recipe ingredients. | High |
 | BR-N04 | Recipe cost uses the latest price: `ORDER BY purchase_date DESC, id DESC LIMIT 1` | Critical |
 | BR-N05 | `PRICE_HISTORY` is append-only. No UPDATE or DELETE. Ever. | Critical |
 | BR-N06 | Soft-deleted ingredients remain in existing recipes for cost history. Cannot be added to new recipes. | High |
@@ -124,7 +126,8 @@ Unique constraint: `(external_provider, external_id)`
 | id | UUID PK | |
 | user_id | UUID FK → USERS | Isolation key |
 | name | TEXT NOT NULL | |
-| base_unit | TEXT NOT NULL | `g`, `ml`, or `unit` — always stored as base |
+| base_unit | TEXT NOT NULL | `g`, `ml`, or `unit` — immutable after creation |
+| unit_size | INTEGER | Optional. Base units per commercial unit (e.g. 900 for a 900ml bottle). Only valid for `g`/`ml`. Immutable once a `unit` price entry exists. |
 | is_active | BOOLEAN DEFAULT TRUE | Soft-delete flag |
 | created_at / updated_at | TIMESTAMPTZ | |
 
@@ -182,14 +185,15 @@ Check: `usage_unit IN ('kg', 'g', 'l', 'ml', 'dozen', 'unit')`
 Lives in `logic/recipe.clj`. All arithmetic uses integers (cents, base units, bps).
 
 ```
-package_factor     = conversion factor for package_unit → base
+package_factor     = unit_size                        (when package_unit = "unit" and unit_size is set)
+                   = conversion factor for package_unit → base  (all other cases)
 usage_factor       = conversion factor for usage_unit → base
 
 cost_per_base_unit = price_cents / (package_quantity × package_factor)
 ingredient_cost    = cost_per_base_unit × (usage_quantity × usage_factor)
 total_recipe_cost  = Σ ingredient_cost
-cost_per_portion   = total_recipe_cost / servings
-suggested_price    = cost_per_portion × (1 + target_margin_bps / 10000)
+portion_cost       = total_recipe_cost / servings
+suggested_price    = portion_cost × (1 + target_margin_bps / 10000)
 ```
 
 ### Worked Example — Chocolate Cake (12 servings, 50% margin)
@@ -252,13 +256,14 @@ suggested_price  = 229 × (1 + 5000 / 10000) = 229 × 1.5 = 344 cents (R$3.44)
 
 **POST /ingredients:**
 ```json
-{ "name": "Farinha", "base_unit": "kg" }
+{ "name": "Farinha", "base_unit": "g" }
+{ "name": "Óleo de Soja", "base_unit": "ml", "unit_size": 900 }
 ```
-Adapter converts `"kg"` → `"g"` before storing.
 
 **Response:**
 ```json
 { "id": "uuid", "name": "Farinha", "base_unit": "g" }
+{ "id": "uuid", "name": "Óleo de Soja", "base_unit": "ml", "unit_size": 900 }
 ```
 
 ### Price History
@@ -283,6 +288,7 @@ Adapter converts `"kg"` → `"g"` before storing.
 | GET | `/recipes/:id` | 200, 404 |
 | PATCH | `/recipes/:id` | 200, 404, 422 |
 | DELETE | `/recipes/:id` | 204, 404 — soft-delete |
+| GET | `/recipes/:id/pricing` | 200, 404 — optional `?selling_price_total=` for actual margin |
 
 **POST /recipes:**
 ```json
@@ -312,8 +318,8 @@ Adapter converts `"kg"` → `"g"` before storing.
 ```
 
 Compatible unit groups (enforced in controllers):
-- Mass: `g`, `kg`
-- Volume: `ml`, `l`
+- Mass: `g`, `kg` (also `unit` when ingredient has `unit_size`)
+- Volume: `ml`, `l` (also `unit` when ingredient has `unit_size`)
 - Count: `unit`, `dozen`
 
 ---
