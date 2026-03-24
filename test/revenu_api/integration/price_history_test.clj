@@ -49,7 +49,7 @@
                                                             :package-unit     "unit"
                                                             :purchase-date    "2024-06-01"})]
       (is (= "unit" (:package-unit result)))
-      (is (= 10     (:package-quantity result))))))
+      (is (= 10M     (:package-quantity result))))))
 
 (deftest add-price-unit-package-rejected-without-unit-size-test
   (with-rollback [db]
