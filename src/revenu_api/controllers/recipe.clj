@@ -16,12 +16,16 @@
         (throw (ex-info "One or more ingredients not found" {:status 422})))
       (let [base-unit-by-id (into {} (map (fn [row] [(str (:ingredients/id row))
                                                      (:ingredients/base_unit row)])
+                                          found))
+            unit-size-by-id (into {} (map (fn [row] [(str (:ingredients/id row))
+                                                     (:ingredients/unit_size row)])
                                           found))]
         (doseq [{:keys [id usage_unit]} ingredients]
-          (let [base-unit (get base-unit-by-id id)]
-            (when-not (logic/compatible? base-unit usage_unit)
+          (let [base-unit (get base-unit-by-id id)
+                unit-size (get unit-size-by-id id)]
+            (when-not (logic/compatible? base-unit usage_unit unit-size)
               (throw (ex-info (format "Invalid usage_unit '%s', accepted: %s"
-                                      usage_unit (str/join ", " (logic/accepted-units base-unit)))
+                                      usage_unit (str/join ", " (logic/accepted-units base-unit unit-size)))
                               {:status 422})))))))))
 
 (defn find-recipe!
@@ -81,7 +85,7 @@
           ingredient-ids          (map :id ingredients)
           latest-prices           (price-history.db/latest-prices-for-ingredients! database ingredient-ids)
           price-by-id             (into {} (map (fn [price] [(str (:price_history/ingredient_id price)) price]) latest-prices))
-          ingredient-details      (ingredient.db/find-by-ids! database user-id ingredient-ids)
+          ingredient-details      (ingredient.db/find-by-ids-for-pricing! database ingredient-ids)
           unit-size-by-id         (into {} (map (fn [row] [(str (:ingredients/id row)) (:ingredients/unit_size row)]) ingredient-details))
           ingredients-with-prices (enrich-with-prices ingredients price-by-id unit-size-by-id)
           pricing-result          (logic.recipe/recipe-pricing recipe ingredients-with-prices)
