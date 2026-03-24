@@ -12,7 +12,7 @@
   (when (seq ingredients)
     (let [ids (map :id ingredients)
           found (ingredient.db/find-by-ids! database user-id ids)]
-      (when (< (count found) (count ids))
+      (when (< (count found) (count (set ids)))
         (throw (ex-info "One or more ingredients not found" {:status 422})))
       (let [base-unit-by-id (into {} (map (fn [row] [(str (:ingredients/id row))
                                                      (:ingredients/base_unit row)])
