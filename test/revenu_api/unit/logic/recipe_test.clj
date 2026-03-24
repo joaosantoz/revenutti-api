@@ -15,18 +15,18 @@
   (testing "recipe with no ingredients returns zero totals"
     (let [result (logic.recipe/recipe-pricing {:servings 4 :target-margin-bps 5000} [])]
       (is (zero? (:total-cost result)))
-      (is (zero? (:cost-per-portion result)))
-      (is (zero? (:suggested-price-per-portion result)))
-      (is (zero? (:suggested-price-total result)))
+      (is (zero? (:portion-cost result)))
+      (is (zero? (:suggested-portion-price result)))
+      (is (zero? (:suggested-total-price result)))
       (is (= [] (:ingredients result)))))
 
   (testing "unpriced ingredient sets all cost fields to nil"
     (let [unpriced (assoc flour :price-cents nil)
           result   (logic.recipe/recipe-pricing {:servings 2 :target-margin-bps 3000} [unpriced])]
       (is (nil? (:total-cost result)))
-      (is (nil? (:cost-per-portion result)))
-      (is (nil? (:suggested-price-per-portion result)))
-      (is (nil? (:suggested-price-total result)))))
+      (is (nil? (:portion-cost result)))
+      (is (nil? (:suggested-portion-price result)))
+      (is (nil? (:suggested-total-price result)))))
 
   (testing "mix of priced and unpriced sets all cost fields to nil"
     (let [unpriced (assoc flour :price-cents nil)
@@ -48,9 +48,9 @@
     ;; suggested-price-total = 187.5 * 2 = 375 cents
     (let [result (logic.recipe/recipe-pricing {:servings 2 :target-margin-bps 5000} [flour])]
       (is (= 250M  (:total-cost result)))
-      (is (= 125M  (:cost-per-portion result)))
-      (is (= 187.5M (:suggested-price-per-portion result)))
-      (is (= 375M  (:suggested-price-total result)))))
+      (is (= 125M  (:portion-cost result)))
+      (is (= 187.5M (:suggested-portion-price result)))
+      (is (= 375M  (:suggested-total-price result)))))
 
   (testing "ingredient cost is attached to each ingredient in result"
     (let [result     (logic.recipe/recipe-pricing {:servings 2 :target-margin-bps 5000} [flour])

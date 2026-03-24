@@ -27,8 +27,8 @@
 (s/defschema RecipePricing
   {:target_margin                    s/Num
    :total_cost                       (s/maybe s/Num)
-   :cost_per_portion                 (s/maybe s/Num)
-   :suggested_price_per_portion      (s/maybe s/Num)
-   :suggested_price_total            (s/maybe s/Num)
+   :portion_cost                 (s/maybe s/Num)
+   :suggested_portion_price      (s/maybe s/Num)
+   :suggested_total_price            (s/maybe s/Num)
    (s/optional-key :actual_margin)   (s/maybe s/Num)
    :ingredients                      [CostIngredient]})

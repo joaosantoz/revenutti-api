@@ -22,7 +22,7 @@
 
 (s/defschema RecipePricing
   {:total-cost                  (s/maybe s/Num)
-   :cost-per-portion            (s/maybe s/Num)
-   :suggested-price-per-portion (s/maybe s/Num)
-   :suggested-price-total       (s/maybe s/Num)
+   :portion-cost            (s/maybe s/Num)
+   :suggested-portion-price (s/maybe s/Num)
+   :suggested-total-price       (s/maybe s/Num)
    :ingredients                 [CostIngredient]})

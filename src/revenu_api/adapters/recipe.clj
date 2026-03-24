@@ -61,8 +61,8 @@
    actual-margin  :- (s/maybe s/Num)]
   (cond-> {:target_margin               (double (/ (:target-margin-bps recipe) 100M))
            :total_cost                  (cents->currency (:total-cost pricing-result))
-           :cost_per_portion            (cents->currency (:cost-per-portion pricing-result))
-           :suggested_price_per_portion (cents->currency (:suggested-price-per-portion pricing-result))
-           :suggested_price_total       (cents->currency (:suggested-price-total pricing-result))
+           :portion_cost            (cents->currency (:portion-cost pricing-result))
+           :suggested_portion_price (cents->currency (:suggested-portion-price pricing-result))
+           :suggested_total_price       (cents->currency (:suggested-total-price pricing-result))
            :ingredients                 (mapv cost-ingredient->wire (:ingredients pricing-result))}
     actual-margin (assoc :actual_margin (double (.setScale actual-margin 2 java.math.RoundingMode/HALF_UP)))))

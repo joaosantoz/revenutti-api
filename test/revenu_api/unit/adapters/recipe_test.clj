@@ -109,29 +109,29 @@
 
     (testing "nil cost fields pass through as nil"
       (let [result (adapter/pricing->wire recipe
-                                          {:total-cost nil :cost-per-portion nil
-                                           :suggested-price-per-portion nil :suggested-price-total nil
+                                          {:total-cost nil :portion-cost nil
+                                           :suggested-portion-price nil :suggested-total-price nil
                                            :ingredients []}
                                           nil)]
         (is (nil? (:total_cost result)))
-        (is (nil? (:cost_per_portion result)))
+        (is (nil? (:portion_cost result)))
         (is (not (contains? result :actual_margin)))))
 
     (testing "costs in cents are converted to 2-decimal BigDecimal"
       (let [result (adapter/pricing->wire recipe
-                                          {:total-cost 999M :cost-per-portion 249.75M
-                                           :suggested-price-per-portion 374.625M :suggested-price-total 1498.5M
+                                          {:total-cost 999M :portion-cost 249.75M
+                                           :suggested-portion-price 374.625M :suggested-total-price 1498.5M
                                            :ingredients []}
                                           nil)]
         (is (= 9.99M   (:total_cost result)))
-        (is (= 2.50M   (:cost_per_portion result)))
-        (is (= 3.75M   (:suggested_price_per_portion result)))
-        (is (= 14.99M  (:suggested_price_total result)))))
+        (is (= 2.50M   (:portion_cost result)))
+        (is (= 3.75M   (:suggested_portion_price result)))
+        (is (= 14.99M  (:suggested_total_price result)))))
 
     (testing "actual_margin present when provided"
       (let [result (adapter/pricing->wire recipe
-                                          {:total-cost nil :cost-per-portion nil
-                                           :suggested-price-per-portion nil :suggested-price-total nil
+                                          {:total-cost nil :portion-cost nil
+                                           :suggested-portion-price nil :suggested-total-price nil
                                            :ingredients []}
                                           50.0M)]
         (is (contains? result :actual_margin))
@@ -141,8 +141,8 @@
       (let [ingredient {:id "abc" :name "Flour" :usage-quantity 1.5 :usage-unit "kg"
                         :price-cents 999 :package-quantity 1 :package-unit "kg" :cost 250M}
             result     (adapter/pricing->wire recipe
-                                              {:total-cost 250M :cost-per-portion 62.5M
-                                               :suggested-price-per-portion 93.75M :suggested-price-total 375M
+                                              {:total-cost 250M :portion-cost 62.5M
+                                               :suggested-portion-price 93.75M :suggested-total-price 375M
                                                :ingredients [ingredient]}
                                               nil)
             wire-ingredient (first (:ingredients result))]

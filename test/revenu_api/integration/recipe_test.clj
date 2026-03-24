@@ -99,11 +99,11 @@
       (testing "total cost is calculated correctly"
         (is (= 250M (:total-cost pricing-result))))
       (testing "cost per portion is total divided by servings"
-        (is (= 125M (:cost-per-portion pricing-result))))
+        (is (= 125M (:portion-cost pricing-result))))
       (testing "suggested price applies markup"
         ;; 125 * (1 + 50%) = 187.5 per portion, 375 total
-        (is (= 187.5M (:suggested-price-per-portion pricing-result)))
-        (is (= 375M   (:suggested-price-total pricing-result))))
+        (is (= 187.5M (:suggested-portion-price pricing-result)))
+        (is (= 375M   (:suggested-total-price pricing-result))))
       (testing "ingredient cost is attached"
         (is (= 250M (:cost (first (:ingredients pricing-result)))))))))
 
@@ -117,9 +117,9 @@
           {:keys [pricing-result]} (controllers.recipe/get-pricing! db (:id user) (str (:id recipe)) nil)]
       (testing "all cost fields are nil when ingredient has no price"
         (is (nil? (:total-cost pricing-result)))
-        (is (nil? (:cost-per-portion pricing-result)))
-        (is (nil? (:suggested-price-per-portion pricing-result)))
-        (is (nil? (:suggested-price-total pricing-result))))
+        (is (nil? (:portion-cost pricing-result)))
+        (is (nil? (:suggested-portion-price pricing-result)))
+        (is (nil? (:suggested-total-price pricing-result))))
       (testing "ingredient cost is nil"
         (is (nil? (:cost (first (:ingredients pricing-result)))))))))
 
