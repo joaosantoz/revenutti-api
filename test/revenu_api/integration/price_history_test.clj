@@ -62,6 +62,29 @@
                                                    :package-unit     "unit"
                                                    :purchase-date    "2024-06-01"}))))))
 
+(deftest add-price-with-supplier-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user))
+          result     (controllers.price-history/add-price! db (:id user) (str (:id ingredient))
+                                                           {:price-cents      500
+                                                            :package-quantity 1
+                                                            :package-unit     "kg"
+                                                            :purchase-date    "2024-06-01"
+                                                            :supplier         "Atacadão"})]
+      (is (= "Atacadão" (:supplier result))))))
+
+(deftest add-price-without-supplier-test
+  (with-rollback [db]
+    (let [user       (factories/make-user! db)
+          ingredient (factories/make-ingredient! db (:id user))
+          result     (controllers.price-history/add-price! db (:id user) (str (:id ingredient))
+                                                           {:price-cents      500
+                                                            :package-quantity 1
+                                                            :package-unit     "kg"
+                                                            :purchase-date    "2024-06-01"})]
+      (is (nil? (:supplier result))))))
+
 (deftest get-prices-ordered-test
   (with-rollback [db]
     (let [user       (factories/make-user! db)

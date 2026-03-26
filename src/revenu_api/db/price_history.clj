@@ -6,12 +6,13 @@
 (defn insert!
   [database ingredient-id price-history]
   (let [query {:insert-into :price_history
-               :values      [{:ingredient_id (UUID/fromString ingredient-id)
-                              :price_cents   (:price-cents price-history)
-                              :package_quantity  (:package-quantity price-history)
-                              :package_unit  (:package-unit price-history)
-                              :purchase_date [:cast (:purchase-date price-history) :date]}]
-               :returning   [:id :ingredient_id :price_cents :package_quantity :package_unit :purchase_date]}]
+               :values      [(cond-> {:ingredient_id (UUID/fromString ingredient-id)
+                                      :price_cents   (:price-cents price-history)
+                                      :package_quantity (:package-quantity price-history)
+                                      :package_unit  (:package-unit price-history)
+                                      :purchase_date [:cast (:purchase-date price-history) :date]}
+                               (contains? price-history :supplier) (assoc :supplier (:supplier price-history)))]
+               :returning   [:id :ingredient_id :price_cents :package_quantity :package_unit :purchase_date :supplier]}]
     (db/query-one database (sql/format query))))
 
 (defn latest-prices-for-ingredients!
