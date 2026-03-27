@@ -41,6 +41,20 @@
       (is (thrown-with-msg? clojure.lang.ExceptionInfo #"revoked"
             (controllers.auth/refresh-tokens! db refresh-token))))))
 
+(deftest find-user-test
+  (with-rollback [db]
+    (let [user   (factories/make-user! db)
+          result (controllers.auth/find-user! db (:id user))]
+      (is (= (:id user)    (:id result)))
+      (is (= (:name user)  (:name result)))
+      (is (= (:email user) (:email result))))))
+
+(deftest find-user-with-avatar-test
+  (with-rollback [db]
+    (let [user   (factories/make-user! db {:avatar-url "https://lh3.googleusercontent.com/photo.jpg"})
+          result (controllers.auth/find-user! db (:id user))]
+      (is (= "https://lh3.googleusercontent.com/photo.jpg" (:avatar_url result))))))
+
 (deftest upsert-user-same-external-id-test
   (with-rollback [db]
     (let [external-id   (str (UUID/randomUUID))

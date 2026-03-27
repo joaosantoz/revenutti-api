@@ -5,5 +5,6 @@
   {:users/id                s/Uuid
    :users/external_provider s/Str
    :users/external_id       s/Str
-   :users/name              s/Str
-   :users/email             s/Str})
+   :users/name                       s/Str
+   :users/email                      s/Str
+   (s/optional-key :users/avatar_url) (s/maybe s/Str)})

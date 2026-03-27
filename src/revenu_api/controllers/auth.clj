@@ -22,7 +22,8 @@
         user          (-> (db/upsert-user! database {:external-provider "google"
                                                      :external-id       (:sub google-user)
                                                      :name              (:name google-user)
-                                                     :email             (:email google-user)})
+                                                     :email             (:email google-user)
+                                                     :avatar-url        (:picture google-user)})
                           (adapter/db->internal))]
     (issue-tokens! database (:id user))))
 
@@ -42,3 +43,12 @@
 (defn logout!
   [database token]
   (refresh-token.db/delete-by-hash! database (auth/hash-token token)))
+
+(defn find-user!
+  [database user-id]
+  (when-let [row (db/find-by-id! database user-id)]
+    (let [user (adapter/db->internal row)]
+      (cond-> {:id    (:id user)
+               :name  (:name user)
+               :email (:email user)}
+        (contains? user :avatar-url) (assoc :avatar_url (:avatar-url user))))))

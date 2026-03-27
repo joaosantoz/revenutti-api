@@ -52,6 +52,14 @@
   {:status 204
    :body   {}})
 
+(defn get-me!
+  [{db :db user-id :user-id}]
+  (if-let [user (controllers.auth/find-user! db user-id)]
+    {:status 200
+     :body   user}
+    {:status 404
+     :body   {:title "Not Found" :detail "User not found" :status 404}}))
+
 (defn create-ingredient!
   [{db         :db
     user-id    :user-id
@@ -216,6 +224,10 @@
     ["/auth/logout"
      :post [interceptors/error-interceptor auth-logout!]
      :route-name :auth-logout]
+
+    ["/me"
+     :get (conj protected get-me!)
+     :route-name :get-me]
 
     ["/ingredients"
      :get (conj protected
