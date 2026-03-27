@@ -11,3 +11,4 @@
 (def google-client-secret (env :google-client-secret))
 (def google-redirect-uri  (env :google-redirect-uri))
 (def jwt-secret           (env :jwt-secret))
+(def allowed-origin       (env :allowed-origin))

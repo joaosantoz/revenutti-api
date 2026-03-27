@@ -7,11 +7,13 @@
             [revenu-api.infra.http-server :as http-server]))
 
 (defn- service-config [db]
-  {::http/routes  http-server/routes
-   ::http/type    :jetty
-   ::http/port    (config/port)
-   ::http/host    "0.0.0.0"
-   ::http/join?   false})
+  {::http/routes          http-server/routes
+   ::http/type            :jetty
+   ::http/port            (config/port)
+   ::http/host            "0.0.0.0"
+   ::http/join?           false
+   ::http/allowed-origins {:creds true
+                           :allowed-origins #{config/allowed-origin}}})
 
 (defrecord Server [db server]
   component/Lifecycle
