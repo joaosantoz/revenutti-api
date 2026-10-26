@@ -24,12 +24,13 @@
         (.close connection)))))
 
 (defonce ^:private test-db-setup
-  (do
+  (delay
     (ensure-db-exists!)
     (migration/migrate)))
 
 (defn open-test-connection
   []
+  @test-db-setup
   (doto (DriverManager/getConnection (env :db-url) (env :db-user) (env :db-password))
     (.setAutoCommit false)))
 
